@@ -843,7 +843,7 @@ func (c *GitCommand) CherryPickCommits(commits []*Commit) error {
 
 // GetCommitFiles get the specified commit files
 func (c *GitCommand) GetCommitFiles(commitSha string) ([]*CommitFile, error) {
-	cmd := fmt.Sprintf("git show --pretty= --name-only %s", commitSha)
+	cmd := fmt.Sprintf("git show --no-renames --pretty= --name-only %s", commitSha)
 	files, err := c.OSCommand.RunCommandWithOutput(cmd)
 	if err != nil {
 		return nil, err
@@ -1005,4 +1005,51 @@ func (c *GitCommand) StashSaveStagedChanges(message string) error {
 	}
 
 	return nil
+}
+
+// SplitCommit takes a commit and an array of file names and pulls the files into a new commit.
+func (c *GitCommand) SplitCommit(commits []*Commit, commitIndex int, files []string) error {
+	if c.usingGpg() {
+		return errors.New(c.Tr.SLocalize("DisabledForGPG"))
+	}
+
+	todo, sha, err := c.GenerateGenericRebaseTodo(commits, commitIndex, "edit")
+	if err != nil {
+		return err
+	}
+
+	cmd, err := c.PrepareInteractiveRebaseCommand(sha, todo, true)
+	if err != nil {
+		return err
+	}
+
+	if err := c.OSCommand.RunPreparedCommand(cmd); err != nil {
+		return err
+	}
+
+	quotedFiles := make([]string, len(files))
+	for i, file := range files {
+		quotedFiles[i] = c.OSCommand.Quote(file)
+	}
+
+	patchDir := fmt.Sprintf("/tmp/patch-%s", sha)
+
+	commands := []string{
+		fmt.Sprintf("git format-patch %s --no-numbered --no-stat --numbered-files --output=%s -- %s", sha, patchDir, strings.Join(quotedFiles, " ")),
+		fmt.Sprintf("git apply --check -R %s/1", patchDir),
+		fmt.Sprintf("git apply -R %s/1", patchDir),
+		"git add -A",
+		"git commit --amend --no-edit",
+		fmt.Sprintf("git apply %s/1", patchDir),
+		"git add -A",
+		fmt.Sprintf("git commit -m \"changes from %s\"", sha),
+	}
+
+	for _, command := range commands {
+		if err := c.OSCommand.RunCommand(command); err != nil {
+			return err
+		}
+	}
+
+	return c.GenericMerge("rebase", "continue")
 }

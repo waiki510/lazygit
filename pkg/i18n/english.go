@@ -445,6 +445,9 @@ func addEnglish(i18nObject *i18n.Bundle) error {
 			ID:    "openFile",
 			Other: `open file`,
 		}, &i18n.Message{
+			ID:    "splitCommit",
+			Other: `pull files into separate commit`,
+		}, &i18n.Message{
 			ID:    "ignoreFile",
 			Other: `add to .gitignore`,
 		}, &i18n.Message{
@@ -681,6 +684,15 @@ func addEnglish(i18nObject *i18n.Bundle) error {
 		}, &i18n.Message{
 			ID:    "DiscardFileChangesPrompt",
 			Other: "Are you sure you want to discard this commit's changes to this file? If this file was created in this commit, it will be deleted",
+		}, &i18n.Message{
+			ID:    "SplitCommitTitle",
+			Other: "Split commit",
+		}, &i18n.Message{
+			ID:    "SplitCommitPrompt",
+			Other: "Are you sure you want to split this commit in two? The selected file(s) will be pulled into a separate commit",
+		}, &i18n.Message{
+			ID:    "select/deselect",
+			Other: "select/deselect",
 		}, &i18n.Message{
 			ID:    "DisabledForGPG",
 			Other: "Feature not available for users using GPG",

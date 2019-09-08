@@ -523,6 +523,20 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Handler:     gui.handleOpenOldCommitFile,
 			Description: gui.Tr.SLocalize("openFile"),
 		},
+		{
+			ViewName:    "commitFiles",
+			Key:         's',
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleSplitCommit,
+			Description: gui.Tr.SLocalize("splitCommit"),
+		},
+		{
+			ViewName:    "commitFiles",
+			Key:         gocui.KeySpace,
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleHighlightCommitFile,
+			Description: gui.Tr.SLocalize("select/deselect"),
+		},
 	}
 
 	for _, viewName := range []string{"status", "branches", "files", "commits", "commitFiles", "stash", "menu"} {

@@ -78,6 +78,10 @@ func (gui *Gui) handleDiscardOldFileChange(g *gocui.Gui, v *gocui.View) error {
 	}, nil)
 }
 
+func (gui *Gui) rerenderCommitFilesView() error {
+	return gui.renderListPanel(gui.getCommitFilesView(), gui.State.CommitFiles)
+}
+
 func (gui *Gui) refreshCommitFilesView() error {
 	commit := gui.getSelectedCommit(gui.g)
 	if commit == nil {
@@ -103,4 +107,39 @@ func (gui *Gui) refreshCommitFilesView() error {
 func (gui *Gui) handleOpenOldCommitFile(g *gocui.Gui, v *gocui.View) error {
 	file := gui.getSelectedCommitFile(g)
 	return gui.openFile(file.Name)
+}
+
+func (gui *Gui) handleSplitCommit(g *gocui.Gui, v *gocui.View) error {
+	highlightedFiles := []string{}
+	for _, file := range gui.State.CommitFiles {
+		if file.Highlighted {
+			highlightedFiles = append(highlightedFiles, file.Name)
+		}
+	}
+	if len(highlightedFiles) == 0 {
+		fileName := gui.State.CommitFiles[gui.State.Panels.CommitFiles.SelectedLine].Name
+		highlightedFiles = append(highlightedFiles, fileName)
+	}
+
+	return gui.createConfirmationPanel(gui.g, v, gui.Tr.SLocalize("SplitCommitTitle"), gui.Tr.SLocalize("SplitCommitPrompt"), func(g *gocui.Gui, v *gocui.View) error {
+		return gui.WithWaitingStatus(gui.Tr.SLocalize("RebasingStatus"), func() error {
+			if err := gui.GitCommand.SplitCommit(gui.State.Commits, gui.State.Panels.Commits.SelectedLine, highlightedFiles); err != nil {
+				if err := gui.handleGenericMergeCommandResult(err); err != nil {
+					return err
+				}
+			}
+
+			if err := gui.refreshSidePanels(gui.g); err != nil {
+				return err
+			}
+			return gui.switchFocus(g, v, gui.getCommitsView())
+		})
+	}, nil)
+}
+
+func (gui *Gui) handleHighlightCommitFile(g *gocui.Gui, v *gocui.View) error {
+	file := gui.getSelectedCommitFile(g)
+	file.Highlighted = !file.Highlighted
+
+	return gui.rerenderCommitFilesView()
 }
