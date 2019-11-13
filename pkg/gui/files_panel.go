@@ -408,7 +408,26 @@ func (gui *Gui) catSelectedFile(g *gocui.Gui) (string, error) {
 	return cat, nil
 }
 
-func (gui *Gui) pullFiles(g *gocui.Gui, v *gocui.View) error {
+func (gui *Gui) handlePullFiles(g *gocui.Gui, v *gocui.View) error {
+	// if we have no upstream branch we need to set that first
+	_, pullables := gui.GitCommand.GetCurrentBranchUpstreamDifferenceCount()
+	currentBranchName, err := gui.GitCommand.CurrentBranchName()
+	if err != nil {
+		return err
+	}
+	if pullables == "?" {
+		return gui.createPromptPanel(g, v, gui.Tr.SLocalize("EnterUpstream"), "origin/"+currentBranchName, func(g *gocui.Gui, v *gocui.View) error {
+			if err := gui.GitCommand.SetUpstreamBranch(gui.trimmedContent(v)); err != nil {
+				return gui.createErrorPanel(gui.g, err.Error())
+			}
+			return gui.pullFiles(v)
+		})
+	}
+
+	return gui.pullFiles(v)
+}
+
+func (gui *Gui) pullFiles(v *gocui.View) error {
 	if err := gui.createLoaderPanel(gui.g, v, gui.Tr.SLocalize("PullWait")); err != nil {
 		return err
 	}
@@ -417,10 +436,11 @@ func (gui *Gui) pullFiles(g *gocui.Gui, v *gocui.View) error {
 		unamePassOpend := false
 		err := gui.GitCommand.Pull(func(passOrUname string) string {
 			unamePassOpend = true
-			return gui.waitForPassUname(g, v, passOrUname)
+			return gui.waitForPassUname(gui.g, v, passOrUname)
 		})
-		gui.HandleCredentialsPopup(g, unamePassOpend, err)
+		gui.HandleCredentialsPopup(gui.g, unamePassOpend, err)
 	}()
+
 	return nil
 }
 
