@@ -457,3 +457,31 @@ func (gui *Gui) onBranchesPanelSearchSelect(selectedLine int) error {
 	}
 	return nil
 }
+
+func (gui *Gui) handleRenameBranch(g *gocui.Gui, v *gocui.View) error {
+	branch := gui.getSelectedBranch()
+	if branch == nil {
+		return nil
+	}
+
+	promptForNewName := func() error {
+		return gui.createPromptPanel(g, v, gui.Tr.SLocalize("NewBranchNamePrompt")+" "+branch.Name+":", "", func(g *gocui.Gui, v *gocui.View) error {
+			newName := gui.trimmedContent(v)
+			if err := gui.GitCommand.RenameBranch(branch.Name, newName); err != nil {
+				return err
+			}
+			return gui.refreshBranches(gui.g)
+		})
+	}
+
+	// I could do an explicit check here for whether the branch is tracking a remote branch
+	// but if we've selected it we'll already know that via Pullables and Pullables.
+	// Bit of a hack but I'm lazy.
+	notTrackingRemote := branch.Pullables == "?"
+	if notTrackingRemote {
+		return promptForNewName()
+	}
+	return gui.createConfirmationPanel(gui.g, v, true, gui.Tr.SLocalize("renameBranch"), gui.Tr.SLocalize("RenameBranchWarning"), func(_g *gocui.Gui, _v *gocui.View) error {
+		return promptForNewName()
+	}, nil)
+}
