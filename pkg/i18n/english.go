@@ -1017,6 +1017,12 @@ func addEnglish(i18nObject *i18n.Bundle) error {
 		}, &i18n.Message{
 			ID:    "Keybindings",
 			Other: "Keybindings",
+		}, &i18n.Message{
+			ID:    "renameBranch",
+			Other: "rename branch",
+		}, &i18n.Message{
+			ID:    "NewBranchNamePrompt",
+			Other: "Enter new branch name for branch",
 		},
 	)
 }
