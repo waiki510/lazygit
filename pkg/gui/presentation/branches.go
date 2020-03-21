@@ -46,6 +46,10 @@ func getBranchDisplayStrings(b *commands.Branch, fullDescription bool) []string 
 
 // GetBranchColor branch color
 func GetBranchColor(name string) color.Attribute {
+	if name == "master"|| name == "develop" {
+		return color.FgYellow
+	}
+
 	branchType := strings.Split(name, "/")[0]
 
 	switch branchType {
