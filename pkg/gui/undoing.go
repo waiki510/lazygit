@@ -92,7 +92,11 @@ func (gui *Gui) reflogUndo(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	return gui.parseReflogForActions(func(counter int, action reflogAction) (bool, error) {
-		if counter != 0 {
+		if counter < 0 {
+			// this shouldn't have happened.
+			gui.Log.Error("undo counter less than zero for some reason")
+			return false, nil
+		} else if counter > 0 {
 			return false, nil
 		}
 
