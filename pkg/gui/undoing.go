@@ -171,6 +171,8 @@ func (gui *Gui) handleHardResetWithAutoStash(commitSha string, options handleHar
 		return nil
 	}
 
+	// random comment
+
 	if dirtyWorkingTree {
 		// offer to autostash changes
 		return gui.createConfirmationPanel(gui.g, gui.getBranchesView(), true, gui.Tr.SLocalize("AutoStashTitle"), gui.Tr.SLocalize("AutoStashPrompt"), func(g *gocui.Gui, v *gocui.View) error {
