@@ -103,11 +103,14 @@ func (gui *Gui) handleMouseDownMain(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
-	switch g.CurrentView().Name() {
+	currentView := g.CurrentView()
+	switch currentView.Name() {
 	case "files":
 		return gui.enterFile(false, v.SelectedLineIdx())
-	case "commitFiles":
-		return gui.enterCommitFile(v.SelectedLineIdx())
+	case "commits":
+		if currentView.Context == "files" {
+			return gui.enterCommitFile(v.SelectedLineIdx())
+		}
 	}
 
 	return nil

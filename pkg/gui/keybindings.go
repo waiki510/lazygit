@@ -933,42 +933,48 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Handler:  gui.handleInfoClick,
 		},
 		{
-			ViewName:    "commitFiles",
+			ViewName:    "commits",
+			Contexts:    []string{"files"},
 			Key:         gui.getKey("universal.return"),
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleSwitchToCommitsPanel,
 			Description: gui.Tr.SLocalize("goBack"),
 		},
 		{
-			ViewName:    "commitFiles",
+			ViewName:    "commits",
+			Contexts:    []string{"files"},
 			Key:         gui.getKey("commitFiles.checkoutCommitFile"),
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleCheckoutCommitFile,
 			Description: gui.Tr.SLocalize("checkoutCommitFile"),
 		},
 		{
-			ViewName:    "commitFiles",
+			ViewName:    "commits",
+			Contexts:    []string{"files"},
 			Key:         gui.getKey("universal.remove"),
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleDiscardOldFileChange,
 			Description: gui.Tr.SLocalize("discardOldFileChange"),
 		},
 		{
-			ViewName:    "commitFiles",
+			ViewName:    "commits",
+			Contexts:    []string{"files"},
 			Key:         gui.getKey("universal.openFile"),
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleOpenOldCommitFile,
 			Description: gui.Tr.SLocalize("openFile"),
 		},
 		{
-			ViewName:    "commitFiles",
+			ViewName:    "commits",
+			Contexts:    []string{"files"},
 			Key:         gui.getKey("universal.select"),
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleToggleFileForPatch,
 			Description: gui.Tr.SLocalize("toggleAddToPatch"),
 		},
 		{
-			ViewName:    "commitFiles",
+			ViewName:    "commits",
+			Contexts:    []string{"files"},
 			Key:         gui.getKey("universal.goInto"),
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleEnterCommitFile,
@@ -1444,7 +1450,8 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Handler:  gui.handleStatusClick,
 		},
 		{
-			ViewName: "commitFiles",
+			ViewName: "commits",
+			Contexts: []string{"files"},
 			Key:      gocui.MouseLeft,
 			Modifier: gocui.ModNone,
 			Handler:  gui.handleCommitFilesClick,
@@ -1487,7 +1494,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 	}
 
-	for _, viewName := range []string{"status", "branches", "files", "commits", "commitFiles", "stash", "menu"} {
+	for _, viewName := range []string{"status", "branches", "files", "commits", "stash", "menu"} {
 		bindings = append(bindings, []*Binding{
 			{ViewName: viewName, Key: gui.getKey("universal.togglePanel"), Modifier: gocui.ModNone, Handler: gui.nextView},
 			{ViewName: viewName, Key: gui.getKey("universal.prevBlock"), Modifier: gocui.ModNone, Handler: gui.previousView},

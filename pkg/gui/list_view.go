@@ -200,7 +200,8 @@ func (gui *Gui) getListViews() []*listView {
 			rendersToMainView:     true,
 		},
 		{
-			viewName:              "commitFiles",
+			viewName:              "commits",
+			context:               "files",
 			getItemsLength:        func() int { return len(gui.State.CommitFiles) },
 			getSelectedLineIdxPtr: func() *int { return &gui.State.Panels.CommitFiles.SelectedLine },
 			handleFocus:           gui.handleCommitFileSelect,

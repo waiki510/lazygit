@@ -104,7 +104,7 @@ func (gui *Gui) refreshCommits() error {
 
 	go func() {
 		_ = gui.refreshCommitsWithLimit()
-		if gui.g.CurrentView() == gui.getCommitFilesView() || (gui.g.CurrentView() == gui.getMainView() && gui.State.MainContext == "patch-building") {
+		if gui.g.CurrentView() == gui.getCommitsView() || (gui.g.CurrentView() == gui.getMainView() && gui.State.MainContext == "patch-building") {
 			_ = gui.refreshCommitFilesView()
 		}
 		wg.Done()
@@ -487,7 +487,7 @@ func (gui *Gui) handleSwitchToCommitFilesPanel(g *gocui.Gui, v *gocui.View) erro
 		return err
 	}
 
-	return gui.switchFocus(g, gui.getCommitsView(), gui.getCommitFilesView())
+	return gui.switchCommitsPanelContext("files")
 }
 
 func (gui *Gui) hasCommit(commits []*commands.Commit, target string) (int, bool) {
@@ -630,6 +630,8 @@ func (gui *Gui) refreshCommitsViewWithSelection() error {
 		return gui.renderBranchCommitsWithSelection()
 	case "reflog-commits":
 		return gui.renderReflogCommitsWithSelection()
+	case "files":
+		return gui.renderCommitFilesWithSelection()
 	}
 
 	return nil
@@ -665,6 +667,9 @@ func (gui *Gui) onCommitsPanelSearchSelect(selectedLine int) error {
 	case "reflog-commits":
 		gui.State.Panels.ReflogCommits.SelectedLine = selectedLine
 		return gui.handleReflogCommitSelect(gui.g, commitsView)
+	case "files":
+		gui.State.Panels.CommitFiles.SelectedLine = selectedLine
+		return gui.handleCommitFileSelect(gui.g, gui.getCommitsView())
 	}
 	return nil
 }

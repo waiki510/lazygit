@@ -52,8 +52,8 @@ func (gui *Gui) onFocusLost(v *gocui.View, newView *gocui.View) error {
 	case "main":
 		// if we have lost focus to a first-class panel, we need to do some cleanup
 		gui.changeMainViewsContext("normal")
-	case "commitFiles":
-		if gui.State.MainContext != "patch-building" {
+	case "commits":
+		if v.Context == "files" && gui.State.MainContext != "patch-building" {
 			if _, err := gui.g.SetViewOnBottom(v.Name()); err != nil {
 				return err
 			}
@@ -86,19 +86,13 @@ func (gui *Gui) currentCycleableViewName() string {
 	// I'll make it that at all times the currently focused view is not included.
 	// what we really need is to find the most recent cyclable view.
 	viewHistory := append(gui.State.ViewFocusHistory.ViewFocuses, gui.currentViewFocus())
-	cycleableViewsPlusCommitFilesView := append(cyclableViews, "commitFiles")
 	for i := len(viewHistory) - 1; i > 0; i-- {
 		viewFocus := viewHistory[i]
 		if viewFocus == nil {
 			continue
 		}
-		if utils.IncludesString(cycleableViewsPlusCommitFilesView, viewFocus.Name) {
-			// unfortunate result of the fact that these are separate views, have to map explicitly
-			if viewFocus.Name == "commitFiles" {
-				return "commits"
-			} else {
-				return viewFocus.Name
-			}
+		if utils.IncludesString(cyclableViews, viewFocus.Name) {
+			return viewFocus.Name
 		}
 	}
 	return "files" // sensible default
@@ -322,16 +316,6 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		branchesView.FgColor = textColor
 		branchesView.SetOnSelectItem(gui.onSelectItemWrapper(gui.onBranchesPanelSearchSelect))
 		branchesView.ContainsList = true
-	}
-
-	if v, err := g.SetViewBeneath("commitFiles", "branches", vHeights["commits"]); err != nil {
-		if err.Error() != "unknown view" {
-			return err
-		}
-		v.Title = gui.Tr.SLocalize("CommitFiles")
-		v.FgColor = textColor
-		v.SetOnSelectItem(gui.onSelectItemWrapper(gui.onCommitFilesPanelSearchSelect))
-		v.ContainsList = true
 	}
 
 	commitsView, err := g.SetViewBeneath("commits", "branches", vHeights["commits"])

@@ -51,12 +51,6 @@ func (gui *Gui) currentDiffTerminals() []string {
 	// if err == nil {
 	// 	names = append(names, file.Name)
 	// }
-	case "commitFiles":
-		// not supporting commit files for now
-		// file := gui.getSelectedCommitFile()
-		// if file != nil {
-		// 	names = append(names, file.Name)
-		// }
 	case "commits":
 		var commit *commands.Commit
 		switch gui.getCommitsView().Context {
@@ -64,6 +58,12 @@ func (gui *Gui) currentDiffTerminals() []string {
 			commit = gui.getSelectedReflogCommit()
 		case "branch-commits":
 			commit = gui.getSelectedCommit()
+		case "files":
+			// not supporting commit files for now
+			// file := gui.getSelectedCommitFile()
+			// if file != nil {
+			// 	names = append(names, file.Name)
+			// }
 		}
 		if commit != nil {
 			names = append(names, commit.Sha)

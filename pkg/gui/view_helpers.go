@@ -143,11 +143,7 @@ func (gui *Gui) nextView(g *gocui.Gui, v *gocui.View) error {
 	if v == nil || v.Name() == cyclableViews[len(cyclableViews)-1] {
 		focusedViewName = cyclableViews[0]
 	} else {
-		// if we're in the commitFiles view we'll act like we're in the commits view
 		viewName := v.Name()
-		if viewName == "commitFiles" {
-			viewName = "commits"
-		}
 		for i := range cyclableViews {
 			if viewName == cyclableViews[i] {
 				focusedViewName = cyclableViews[i+1]
@@ -180,11 +176,7 @@ func (gui *Gui) previousView(g *gocui.Gui, v *gocui.View) error {
 	if v == nil || v.Name() == cyclableViews[0] {
 		focusedViewName = cyclableViews[len(cyclableViews)-1]
 	} else {
-		// if we're in the commitFiles view we'll act like we're in the commits view
 		viewName := v.Name()
-		if viewName == "commitFiles" {
-			viewName = "commits"
-		}
 		for i := range cyclableViews {
 			if viewName == cyclableViews[i] {
 				focusedViewName = cyclableViews[i-1] // TODO: make this work properly
@@ -235,9 +227,17 @@ func (gui *Gui) newLineFocused(g *gocui.Gui, v *gocui.View) error {
 			return errors.New("unknown branches panel context: " + branchesView.Context)
 		}
 	case "commits":
-		return gui.handleCommitSelect(g, v)
-	case "commitFiles":
-		return gui.handleCommitFileSelect(g, v)
+		commitsView := gui.getCommitsView()
+		switch commitsView.Context {
+		case "branch-commits":
+			return gui.handleCommitSelect(g, v)
+		case "reflog-commits":
+			return gui.handleReflogCommitSelect(g, v)
+		case "files":
+			return gui.handleCommitFileSelect(g, v)
+		default:
+			return errors.New("unknown commits panel context: " + commitsView.Context)
+		}
 	case "stash":
 		return gui.handleStashEntrySelect(g, v)
 	case "confirmation":
@@ -420,11 +420,6 @@ func (gui *Gui) getSecondaryView() *gocui.View {
 
 func (gui *Gui) getStashView() *gocui.View {
 	v, _ := gui.g.View("stash")
-	return v
-}
-
-func (gui *Gui) getCommitFilesView() *gocui.View {
-	v, _ := gui.g.View("commitFiles")
 	return v
 }
 
