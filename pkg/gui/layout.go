@@ -71,28 +71,41 @@ func (gui *Gui) onFocus(v *gocui.View) error {
 	return nil
 }
 
-func (gui *Gui) getViewHeights() map[string]int {
+func (gui *Gui) currentViewFocus() *ViewFocus {
 	currView := gui.g.CurrentView()
-	currentCyclebleView := gui.State.PreviousView
-	if currView != nil {
-		viewName := currView.Name()
-		usePreviousView := true
-		for _, view := range cyclableViews {
-			if view == viewName {
-				currentCyclebleView = viewName
-				usePreviousView = false
-				break
+	if currView == nil {
+		return nil
+	}
+	return &ViewFocus{
+		Name:    currView.Name(),
+		Context: currView.Context,
+	}
+}
+
+func (gui *Gui) currentCycleableViewName() string {
+	// I'll make it that at all times the currently focused view is not included.
+	// what we really need is to find the most recent cyclable view.
+	viewHistory := append(gui.State.ViewFocusHistory.ViewFocuses, gui.currentViewFocus())
+	cycleableViewsPlusCommitFilesView := append(cyclableViews, "commitFiles")
+	for i := len(viewHistory) - 1; i > 0; i-- {
+		viewFocus := viewHistory[i]
+		if viewFocus == nil {
+			continue
+		}
+		if utils.IncludesString(cycleableViewsPlusCommitFilesView, viewFocus.Name) {
+			// unfortunate result of the fact that these are separate views, have to map explicitly
+			if viewFocus.Name == "commitFiles" {
+				return "commits"
+			} else {
+				return viewFocus.Name
 			}
 		}
-		if usePreviousView {
-			currentCyclebleView = gui.State.PreviousView
-		}
 	}
+	return "files" // sensible default
+}
 
-	// unfortunate result of the fact that these are separate views, have to map explicitly
-	if currentCyclebleView == "commitFiles" {
-		currentCyclebleView = "commits"
-	}
+func (gui *Gui) getViewHeights() map[string]int {
+	currentCyclebleView := gui.currentCycleableViewName()
 
 	_, height := gui.g.Size()
 

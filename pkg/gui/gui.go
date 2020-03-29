@@ -190,6 +190,45 @@ type DiffState struct {
 	Reverse bool
 }
 
+// viewState is for keeping track of which panels have had focus so we can
+// return focus when necessary
+type ViewFocus struct {
+	Name    string
+	Context string
+}
+
+type ViewFocusHistory struct {
+	ViewFocuses []*ViewFocus
+	mutex       sync.Mutex
+}
+
+func (v *ViewFocusHistory) push(viewFocus *ViewFocus) {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.ViewFocuses = append(v.ViewFocuses, viewFocus)
+}
+
+func (v *ViewFocusHistory) pop() *ViewFocus {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	if len(v.ViewFocuses) == 0 {
+		return nil
+	}
+	result := v.ViewFocuses[len(v.ViewFocuses)-1]
+	v.ViewFocuses = v.ViewFocuses[:len(v.ViewFocuses)-1]
+	return result
+}
+
+func (v *ViewFocusHistory) peek() *ViewFocus {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	if len(v.ViewFocuses) == 0 {
+		return nil
+	}
+	result := v.ViewFocuses[len(v.ViewFocuses)]
+	return result
+}
+
 type guiState struct {
 	Files        []*commands.File
 	Branches     []*commands.Branch
@@ -207,7 +246,7 @@ type guiState struct {
 	RemoteBranches        []*commands.RemoteBranch
 	Tags                  []*commands.Tag
 	MenuItemCount         int // can't store the actual list because it's of interface{} type
-	PreviousView          string
+	ViewFocusHistory      *ViewFocusHistory
 	Updating              bool
 	Panels                *panelStates
 	MainContext           string // used to keep the main and secondary views' contexts in sync
@@ -240,7 +279,6 @@ func (gui *Gui) resetState() {
 
 	gui.State = &guiState{
 		Files:                 make([]*commands.File, 0),
-		PreviousView:          "files",
 		Commits:               make([]*commands.Commit, 0),
 		FilteredReflogCommits: make([]*commands.Commit, 0),
 		ReflogCommits:         make([]*commands.Commit, 0),
@@ -264,10 +302,11 @@ func (gui *Gui) resetState() {
 				EditHistory:   stack.New(),
 			},
 		},
-		SideView:   nil,
-		Ptmx:       nil,
-		FilterPath: prevFilterPath,
-		Diff:       prevDiff,
+		SideView:         nil,
+		Ptmx:             nil,
+		FilterPath:       prevFilterPath,
+		Diff:             prevDiff,
+		ViewFocusHistory: &ViewFocusHistory{},
 	}
 }
 

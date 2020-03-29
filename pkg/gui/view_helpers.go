@@ -260,14 +260,17 @@ func (gui *Gui) newLineFocused(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) returnFocus(g *gocui.Gui, v *gocui.View) error {
-	previousView, err := g.View(gui.State.PreviousView)
-	if err != nil {
+	previousViewFocus := gui.State.ViewFocusHistory.pop()
+	previousViewName := "files"
+	if previousViewFocus != nil {
 		// always fall back to files view if there's no 'previous' view stored
-		previousView, err = g.View("files")
-		if err != nil {
-			gui.Log.Error(err)
-		}
+		previousViewName = previousViewFocus.Name
 	}
+	previousView, err := gui.g.View(previousViewName)
+	if err != nil {
+		gui.Log.Error(err)
+	}
+
 	return gui.switchFocus(g, v, previousView)
 }
 
@@ -300,10 +303,16 @@ func (gui *Gui) closePopupPanels() error {
 // pass in oldView = nil if you don't want to be able to return to your old view
 // TODO: move some of this logic into our onFocusLost and onFocus hooks
 func (gui *Gui) switchFocus(g *gocui.Gui, oldView, newView *gocui.View) error {
+	if newView == nil {
+		return nil
+	}
 	// we assume we'll never want to return focus to a popup panel i.e.
 	// we should never stack popup panels
 	if oldView != nil && !gui.isPopupPanel(oldView.Name()) {
-		gui.State.PreviousView = oldView.Name()
+		gui.State.ViewFocusHistory.push(&ViewFocus{
+			Name:    oldView.Name(),
+			Context: oldView.Context,
+		})
 	}
 
 	gui.Log.Info("setting highlight to true for view" + newView.Name())
