@@ -85,12 +85,23 @@ type GitCommand struct {
 	DotGitDir            string
 	onSuccessfulContinue func() error
 	PatchManager         *PatchManager
+
+	// Push to current determines whether the user has configured to push to the remote branch of the same name as the current or not
+	PushToCurrent bool
 }
 
 // NewGitCommand it runs git commands
 func NewGitCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Localizer, config config.AppConfigurer) (*GitCommand, error) {
 	var worktree *gogit.Worktree
 	var repo *gogit.Repository
+
+	// see what our default push behaviour is
+	output, err := osCommand.RunCommandWithOutput("git config --get push.default")
+	if err != nil {
+		return nil, err
+	}
+
+	pushToCurrent := strings.TrimSpace(output) == "current"
 
 	fs := []func() error{
 		func() error {
@@ -128,6 +139,7 @@ func NewGitCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Localizer, 
 		getLocalGitConfig:  gitconfig.Local,
 		removeFile:         os.RemoveAll,
 		DotGitDir:          dotGitDir,
+		PushToCurrent:      pushToCurrent,
 	}
 
 	gitCommand.PatchManager = NewPatchManager(log, gitCommand.ApplyPatch)
