@@ -46,7 +46,7 @@ func (gui *Gui) getViewDimensions() map[string]dimensions {
 	}
 
 	sidePanelsDirection := COLUMN
-	portraitMode := width <= 84 && height > 50
+	portraitMode := true || (width <= 84 && height > 50)
 	if portraitMode {
 		sidePanelsDirection = ROW
 	}
@@ -59,9 +59,36 @@ func (gui *Gui) getViewDimensions() map[string]dimensions {
 				weight:    1,
 				children: []*box{
 					{
-						direction:           ROW,
-						weight:              sideSectionWeight,
-						conditionalChildren: gui.sidePanelChildren,
+						direction: COLUMN,
+						weight:    sideSectionWeight,
+						children: []*box{
+							{
+								weight:    1,
+								direction: ROW,
+								children: []*box{
+									{
+										viewName: "status",
+										size:     3,
+									},
+									{
+										viewName: "branches",
+										weight:   1,
+									},
+									{
+										viewName: "stash",
+										weight:   1,
+									},
+								},
+							},
+							{
+								weight:   1,
+								viewName: "files",
+							},
+							{
+								weight:   1,
+								viewName: "commits",
+							},
+						},
 					},
 					{
 						conditionalDirection: func(width int, height int) int {
@@ -90,6 +117,40 @@ func (gui *Gui) getViewDimensions() map[string]dimensions {
 
 func (gui *Gui) sidePanelChildren(width int, height int) []*box {
 	currentCyclableViewName := gui.currentCyclableViewName()
+
+	// return []*box{
+	// 	{
+	// 		direction: COLUMN,
+	// 		children: []*box{
+	// 			{
+	// 				weight:    1,
+	// 				direction: ROW,
+	// 				children: []*box{
+	// 					{
+	// 						viewName: "status",
+	// 						size:     3,
+	// 					},
+	// 					{
+	// 						viewName: "branches",
+	// 						weight:   1,
+	// 					},
+	// 					{
+	// 						viewName: "stash",
+	// 						weight:   1,
+	// 					},
+	// 				},
+	// 			},
+	// 			{
+	// 				weight:   1,
+	// 				viewName: "files",
+	// 			},
+	// 			{
+	// 				weight:   1,
+	// 				viewName: "commits",
+	// 			},
+	// 		},
+	// 	},
+	// }
 
 	if gui.State.ScreenMode == SCREEN_FULL || gui.State.ScreenMode == SCREEN_HALF {
 		fullHeightBox := func(viewName string) *box {

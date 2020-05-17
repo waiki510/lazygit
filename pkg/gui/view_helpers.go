@@ -13,7 +13,9 @@ import (
 )
 
 func (gui *Gui) getCyclableViews() []string {
-	return []string{"status", "files", "branches", "commits", "stash"}
+	// return []string{"status", "files", "branches", "commits", "stash"}
+
+	return []string{"status", "branches", "stash", "files", "commits"}
 }
 
 // models/views that we can refresh
