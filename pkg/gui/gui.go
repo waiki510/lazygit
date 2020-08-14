@@ -303,7 +303,7 @@ func NewGui(log *logrus.Entry, gitCommand *commands.GitCommand, oSCommand *comma
 func (gui *Gui) Run() error {
 	gui.resetState()
 
-	g, err := gocui.NewGui(gocui.Output256, OverlappingEdges)
+	g, err := gocui.NewGui(gocui.Output256, OverlappingEdges, gui.Log)
 	if err != nil {
 		return err
 	}
