@@ -114,7 +114,7 @@ func (v *View) EditGotoToEndOfLine() {
 // EditDelete deletes a rune at the cursor position. back determines the
 // direction.
 func (v *View) EditDelete(back bool) {
-	x, y := v.ox+v.wcx, v.oy+v.wcy
+	x, y := v.wcx, v.wcy
 	if y < 0 {
 		return
 	} else if y >= len(v.viewLines) {
@@ -169,22 +169,14 @@ func (v *View) EditNewLine() {
 // MoveCursor moves the cursor taking into account the width of the line/view,
 // displacing the origin if necessary.
 func (v *View) MoveCursor(dx, dy int, writeMode bool) {
-	ox, oy := v.wcx+v.ox, v.wcy+v.oy
-	x, y := ox+dx, oy+dy
+	// panic("test")
+
+	origX, origY := v.wcx, v.wcy
+	x, y := origX+dx, origY+dy
 
 	if y < 0 || y >= len(v.viewLines) {
+		// panic("test")
 		v.moveCursor(dx, dy, writeMode)
-		return
-	}
-
-	// Removing newline.
-	if x < 0 {
-		var prevLen int
-		if y-1 >= 0 && y-1 < len(v.viewLines) {
-			prevLen = lineWidth(v.viewLines[y-1].line)
-		}
-
-		v.MoveCursor(prevLen, -1, writeMode)
 		return
 	}
 
@@ -208,13 +200,14 @@ func (v *View) MoveCursor(dx, dy int, writeMode bool) {
 		}
 	}
 
-	v.moveCursor(x-ox, y-oy, writeMode)
+	v.moveCursor(x-origX, y-origY, writeMode)
 }
 
 func (v *View) moveCursor(dx, dy int, writeMode bool) {
+	v.log.Warnf("before: wcx: %d, wcy: %d, cx: %d, cy: %d, ox: %d, oy: %d", v.wcx, v.wcy, v.cx, v.cy, v.ox, v.oy)
+
 	maxX, maxY := v.Size()
 	cx, cy := v.wcx+dx, v.wcy+dy
-	x, y := v.ox+cx, v.oy+cy
 
 	var curLineWidth, prevLineWidth int
 	// get the width of the current line
@@ -225,8 +218,8 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 
 	if !writeMode {
 		curLineWidth = 0
-		if y >= 0 && y < len(v.viewLines) {
-			curLineWidth = lineWidth(v.viewLines[y].line)
+		if cy >= 0 && cy < len(v.viewLines) {
+			curLineWidth = lineWidth(v.viewLines[cy].line)
 			if v.Wrap && curLineWidth >= maxX {
 				curLineWidth = maxX - 1
 			}
@@ -234,11 +227,11 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 	}
 	// get the width of the previous line
 	prevLineWidth = 0
-	if y-1 >= 0 && y-1 < len(v.viewLines) {
-		prevLineWidth = lineWidth(v.viewLines[y-1].line)
+	if cy-1 >= 0 && cy-1 < len(v.viewLines) {
+		prevLineWidth = lineWidth(v.viewLines[cy-1].line)
 	}
 	// adjust cursor's x position and view's x origin
-	if x > curLineWidth { // move to next line
+	if cx > curLineWidth { // move to next line
 		if dx > 0 { // horizontal movement
 			cy++
 			if writeMode || v.oy+cy < len(v.viewLines) {
@@ -248,6 +241,7 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 				v.wcx = 0
 			}
 		} else { // vertical movement
+			// panic("test2")
 			if curLineWidth > 0 { // move cursor to the EOL
 				if v.Wrap {
 					v.wcx = curLineWidth
@@ -260,11 +254,12 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 						}
 						v.wcx = 0
 					} else {
-						v.wcx = ncx
+						v.wcx = ncx + v.ox
 					}
 				}
 			} else {
-				if writeMode || v.oy+cy < len(v.viewLines) {
+				// panic("test3")
+				if writeMode || cy < len(v.viewLines) {
 					if !v.Wrap {
 						v.ox = 0
 					}
@@ -272,11 +267,14 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 				}
 			}
 		}
-	} else if cx < 0 {
-		if !v.Wrap && v.ox > 0 { // move origin to the left
-			v.ox += cx
-			v.wcx = 0
-		} else { // move to previous line
+
+	} else if cx < v.ox { // desired cursor position just out of bounds to the left
+		if !v.Wrap && v.ox > 0 { // if there's still some scrolling to be done, do it
+			v.ox += dx
+			v.wcx = v.ox
+			v.log.Warn("in here for some reason")
+		} else { // otherwise move to the end of the previous line
+			// panic("test5")
 			cy--
 			if prevLineWidth > 0 {
 				if !v.Wrap { // set origin so the EOL is visible
@@ -286,6 +284,7 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 					}
 					v.ox = nox
 				}
+
 				v.wcx = prevLineWidth
 			} else {
 				if !v.Wrap {
@@ -298,12 +297,11 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 		if v.Wrap {
 			v.wcx = cx
 		} else {
-			if cx >= maxX {
-				v.ox += cx - maxX + 1
-				v.wcx = maxX
-			} else {
-				v.wcx = cx
+			if cx-v.ox >= maxX || cx < v.ox {
+				v.log.Warn(cx)
+				v.ox += dx
 			}
+			v.wcx = cx
 		}
 	}
 
@@ -319,6 +317,8 @@ func (v *View) moveCursor(dx, dy int, writeMode bool) {
 			v.wcy = cy
 		}
 	}
+
+	v.log.Warnf("after: wcx: %d, wcy: %d, cx: %d, cy: %d, ox: %d, oy: %d", v.wcx, v.wcy, v.cx, v.cy, v.ox, v.oy)
 }
 
 // writeRune writes a rune into the view's internal buffer, at the
