@@ -13,7 +13,7 @@ require (
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/integrii/flaggy v1.4.0
-	github.com/jesseduffield/gocui v0.3.1-0.20200814230816-1b2e7a406f2c
+	github.com/jesseduffield/gocui v0.3.1-0.20200815014023-fcfd7a76675e
 	github.com/jesseduffield/termbox-go v0.0.0-20200405031649-4dc645f7e8ba // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/mattn/go-colorable v0.1.4 // indirect

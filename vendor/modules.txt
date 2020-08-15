@@ -99,7 +99,7 @@ github.com/hashicorp/hcl/json/token
 github.com/integrii/flaggy
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 github.com/jbenet/go-context/io
-# github.com/jesseduffield/gocui v0.3.1-0.20200814230816-1b2e7a406f2c
+# github.com/jesseduffield/gocui v0.3.1-0.20200815014023-fcfd7a76675e
 ## explicit
 github.com/jesseduffield/gocui
 # github.com/jesseduffield/termbox-go v0.0.0-20200405031649-4dc645f7e8ba
