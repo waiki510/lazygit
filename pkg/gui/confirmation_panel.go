@@ -106,7 +106,8 @@ func (gui *Gui) closeConfirmationPrompt(returnFocusOnClose bool) error {
 	}
 	gui.g.DeleteKeybinding("confirmation", gocui.KeyEnter, gocui.ModNone)
 	gui.g.DeleteKeybinding("confirmation", gocui.KeyEsc, gocui.ModNone)
-	return gui.g.DeleteView("confirmation")
+	_, err = gui.g.SetViewOnBottom("confirmation")
+	return err
 }
 
 func (gui *Gui) getMessageHeight(wrap bool, message string, width int) int {
