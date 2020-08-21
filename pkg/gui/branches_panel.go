@@ -484,3 +484,34 @@ func (gui *Gui) handleClipboardCopyBranch(g *gocui.Gui, v *gocui.View) error {
 
 	return gui.OSCommand.CopyToClipboard(branch.Name)
 }
+
+func (gui *Gui) handleSwitchToBranchCommits() error {
+	branch := gui.getSelectedBranch()
+	if branch == nil {
+		return nil
+	}
+
+	refName := branch.RefName()
+
+	// need to populate my sub commits
+	builder := commands.NewCommitListBuilder(gui.Log, gui.GitCommand, gui.OSCommand, gui.Tr, gui.State.CherryPickedCommits)
+
+	commits, err := builder.GetCommits(
+		commands.GetCommitsOptions{
+			Limit:                gui.State.Panels.Commits.LimitCommits,
+			FilterPath:           gui.State.FilterPath,
+			IncludeRebaseCommits: false,
+			RefName:              refName,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	gui.State.SubCommits = commits
+	gui.State.Panels.SubCommits.refName = refName
+	gui.State.Panels.SubCommits.SelectedLineIdx = 0
+	gui.Contexts.SubCommits.Context.SetParentContext(gui.Contexts.Branches.Context)
+
+	return gui.switchContext(gui.Contexts.SubCommits.Context)
+}

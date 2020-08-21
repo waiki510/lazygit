@@ -368,6 +368,22 @@ func (gui *Gui) reflogCommitsListContext() *ListContext {
 	}
 }
 
+func (gui *Gui) subCommitsListContext() *ListContext {
+	return &ListContext{
+		ViewName:          "branches",
+		ContextKey:        SUB_COMMITS_CONTEXT_KEY,
+		GetItemsLength:    func() int { return len(gui.State.SubCommits) },
+		GetPanelState:     func() IListPanelState { return gui.State.Panels.SubCommits },
+		OnFocus:           gui.handleSubCommitSelect,
+		Gui:               gui,
+		RendersToMainView: true,
+		Kind:              SIDE_CONTEXT,
+		GetDisplayStrings: func() [][]string {
+			return presentation.GetCommitListDisplayStrings(gui.State.SubCommits, gui.State.ScreenMode != SCREEN_NORMAL, gui.cherryPickedCommitShaMap(), gui.State.Diff.Ref)
+		},
+	}
+}
+
 func (gui *Gui) stashListContext() *ListContext {
 	return &ListContext{
 		ViewName:          "stash",
@@ -411,6 +427,7 @@ func (gui *Gui) getListContexts() []*ListContext {
 		gui.tagsListContext(),
 		gui.branchCommitsListContext(),
 		gui.reflogCommitsListContext(),
+		gui.subCommitsListContext(),
 		gui.stashListContext(),
 		gui.commitFilesListContext(),
 	}

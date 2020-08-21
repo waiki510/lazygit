@@ -22,6 +22,7 @@ const (
 	TAGS_CONTEXT_KEY                = "tags"
 	BRANCH_COMMITS_CONTEXT_KEY      = "commits"
 	REFLOG_COMMITS_CONTEXT_KEY      = "reflogCommits"
+	SUB_COMMITS_CONTEXT_KEY         = "subCommits"
 	COMMIT_FILES_CONTEXT_KEY        = "commitFiles"
 	STASH_CONTEXT_KEY               = "stash"
 	MAIN_NORMAL_CONTEXT_KEY         = "normal"
@@ -129,6 +130,7 @@ type ContextTree struct {
 	BranchCommits SimpleContextNode
 	CommitFiles   SimpleContextNode
 	ReflogCommits SimpleContextNode
+	SubCommits    SimpleContextNode
 	Stash         SimpleContextNode
 	Normal        SimpleContextNode
 	Staging       SimpleContextNode
@@ -160,6 +162,7 @@ func (gui *Gui) allContexts() []Context {
 		gui.Contexts.Staging.Context,
 		gui.Contexts.Merging.Context,
 		gui.Contexts.PatchBuilding.Context,
+		gui.Contexts.SubCommits.Context,
 	}
 }
 
@@ -193,6 +196,9 @@ func (gui *Gui) contextTree() ContextTree {
 		},
 		ReflogCommits: SimpleContextNode{
 			Context: gui.reflogCommitsListContext(),
+		},
+		SubCommits: SimpleContextNode{
+			Context: gui.subCommitsListContext(),
 		},
 		Branches: SimpleContextNode{
 			Context: gui.branchesListContext(),
