@@ -74,11 +74,7 @@ func newDevelopmentLogger(config config.AppConfigurer) *logrus.Logger {
 
 func newLogger(config config.AppConfigurer) *logrus.Entry {
 	var log *logrus.Logger
-	if config.GetDebug() || os.Getenv("DEBUG") == "TRUE" {
-		log = newDevelopmentLogger(config)
-	} else {
-		log = newProductionLogger(config)
-	}
+	log = newDevelopmentLogger(config)
 
 	// highly recommended: tail -f development.log | humanlog
 	// https://github.com/aybabtme/humanlog
@@ -106,6 +102,10 @@ func NewApp(config config.AppConfigurer, filterPath string) (*App, error) {
 	app.ClientContext = os.Getenv("LAZYGIT_CLIENT_COMMAND")
 	if app.ClientContext != "" {
 		return app, nil
+	}
+
+	if err := gui.SetTCPAddressEnvVar(); err != nil {
+		return app, err
 	}
 
 	app.OSCommand = commands.NewOSCommand(app.Log, config)
@@ -196,23 +196,24 @@ func (app *App) setupRepo() (bool, error) {
 }
 
 func (app *App) Run() error {
-	if app.ClientContext == "INTERACTIVE_REBASE" {
+	switch app.ClientContext {
+	case "SWITCH_TO_EDITOR":
+		return gui.SwitchToEditor()
+	case "INTERACTIVE_REBASE":
 		return app.Rebase()
-	}
-
-	if app.ClientContext == "EXIT_IMMEDIATELY" {
+	case "EXIT_IMMEDIATELY":
 		os.Exit(0)
+		return nil // won't actually reach this line, just satisfying the function signature
+	default:
+		return app.Gui.RunWithSubprocesses()
 	}
-
-	err := app.Gui.RunWithSubprocesses()
-	return err
 }
 
 // Rebase contains logic for when we've been run in demon mode, meaning we've
 // given lazygit as a command for git to call e.g. to edit a file
 func (app *App) Rebase() error {
-	app.Log.Info("Lazygit invoked as interactive rebase demon")
-	app.Log.Info("args: ", os.Args)
+	app.Log.Warn("Lazygit invoked as interactive rebase demon")
+	app.Log.Warn("args: ", os.Args)
 
 	if strings.HasSuffix(os.Args[1], "git-rebase-todo") {
 		if err := ioutil.WriteFile(os.Args[1], []byte(os.Getenv("LAZYGIT_REBASE_TODO")), 0644); err != nil {
@@ -222,6 +223,8 @@ func (app *App) Rebase() error {
 	} else if strings.HasSuffix(os.Args[1], ".git/COMMIT_EDITMSG") {
 		// if we are rebasing and squashing, we'll see a COMMIT_EDITMSG
 		// but in this case we don't need to edit it, so we'll just return
+
+		// so we need to tell the client lazygit to open that file in an editor
 	} else {
 		app.Log.Info("Lazygit demon did not match on any use cases")
 	}

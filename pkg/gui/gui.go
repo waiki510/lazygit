@@ -103,6 +103,9 @@ type Gui struct {
 	viewBufferManagerMap map[string]*tasks.ViewBufferManager
 	stopChan             chan struct{}
 
+	// we close this channel whenever we return from a subprocess
+	returnFromSubprocessChan chan struct{}
+
 	// when lazygit is opened outside a git directory we want to open to the most
 	// recent repo with the recent repos popup showing
 	showRecentRepos   bool
@@ -402,6 +405,17 @@ func NewGui(log *logrus.Entry, gitCommand *commands.GitCommand, oSCommand *comma
 
 // Run setup the gui with keybindings and start the mainloop
 func (gui *Gui) Run() error {
+	if gui.returnFromSubprocessChan != nil {
+		close(gui.returnFromSubprocessChan)
+	} else {
+		// first time running
+		if err := gui.runServer(); err != nil {
+			return err
+		}
+	}
+
+	gui.returnFromSubprocessChan = make(chan struct{})
+
 	gui.resetState()
 
 	g, err := gocui.NewGui(gocui.Output256, OverlappingEdges)
@@ -486,6 +500,7 @@ func (gui *Gui) RunWithSubprocesses() error {
 			case gui.Errors.ErrSwitchRepo, gui.Errors.ErrRestart:
 				continue
 			case gui.Errors.ErrSubProcess:
+				gui.Log.Warn("about to run subprocess")
 
 				if err := gui.runCommand(); err != nil {
 					return err

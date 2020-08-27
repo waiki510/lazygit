@@ -263,14 +263,6 @@ func (gui *Gui) handleMidRebaseCommand(action string) (bool, error) {
 		return false, nil
 	}
 
-	// for now we do not support setting 'reword' because it requires an editor
-	// and that means we either unconditionally wait around for the subprocess to ask for
-	// our input or we set a lazygit client as the EDITOR env variable and have it
-	// request us to edit the commit message when prompted.
-	if action == "reword" {
-		return true, gui.createErrorPanel(gui.Tr.SLocalize("rewordNotSupported"))
-	}
-
 	if err := gui.GitCommand.EditRebaseTodo(gui.State.Panels.Commits.SelectedLineIdx, action); err != nil {
 		return false, gui.surfaceError(err)
 	}

@@ -230,9 +230,7 @@ func (c *OSCommand) OpenLink(link string) error {
 	return err
 }
 
-// EditFile opens a file in a subprocess using whatever editor is available,
-// falling back to core.editor, VISUAL, EDITOR, then vi
-func (c *OSCommand) EditFile(filename string) (*exec.Cmd, error) {
+func (c *OSCommand) GetEditor() (string, error) {
 	editor, _ := c.getGlobalGitConfig("core.editor")
 
 	if editor == "" {
@@ -247,7 +245,18 @@ func (c *OSCommand) EditFile(filename string) (*exec.Cmd, error) {
 		}
 	}
 	if editor == "" {
-		return nil, errors.New("No editor defined in $VISUAL, $EDITOR, or git config")
+		return "", errors.New("No editor defined in $VISUAL, $EDITOR, or git config")
+	}
+
+	return editor, nil
+}
+
+// EditFile opens a file in a subprocess using whatever editor is available,
+// falling back to core.editor, VISUAL, EDITOR, then vi
+func (c *OSCommand) EditFile(filename string) (*exec.Cmd, error) {
+	editor, err := c.GetEditor()
+	if err != nil {
+		return nil, err
 	}
 
 	splitCmd := str.ToArgv(fmt.Sprintf("%s %s", editor, filename))

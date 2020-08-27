@@ -360,8 +360,9 @@ func (gui *Gui) handleCommitEditorPress() error {
 
 // PrepareSubProcess - prepare a subprocess for execution and tell the gui to switch to it
 func (gui *Gui) PrepareSubProcess(commands ...string) {
-	gui.SubProcess = gui.GitCommand.PrepareCommitSubProcess()
+	gui.SubProcess = gui.OSCommand.PrepareSubProcess(commands[0], commands[1:]...)
 	gui.g.Update(func(g *gocui.Gui) error {
+
 		return gui.Errors.ErrSubProcess
 	})
 }

@@ -812,16 +812,21 @@ func (c *GitCommand) FastForward(branchName string, remoteName string, remoteBra
 }
 
 func (c *GitCommand) RunSkipEditorCommand(command string) error {
+	c.Log.Warn("calling run skip editor command")
+
 	cmd := c.OSCommand.ExecutableFromString(command)
 	lazyGitPath := c.OSCommand.GetLazygitPath()
 	cmd.Env = append(
 		cmd.Env,
-		"LAZYGIT_CLIENT_COMMAND=EXIT_IMMEDIATELY",
+		"LAZYGIT_CLIENT_COMMAND=SWITCH_TO_EDITOR",
 		"GIT_EDITOR="+lazyGitPath,
 		"EDITOR="+lazyGitPath,
 		"VISUAL="+lazyGitPath,
 	)
-	return c.OSCommand.RunExecutable(cmd)
+	go c.OSCommand.RunExecutable(cmd)
+
+	// return c.OSCommand.RunExecutable(cmd)
+	return nil
 }
 
 // GenericMerge takes a commandType of "merge" or "rebase" and a command of "abort", "skip" or "continue"
@@ -841,17 +846,17 @@ func (c *GitCommand) GenericMerge(commandType string, command string) error {
 		c.Log.Warn(err)
 	}
 
-	// sometimes we need to do a sequence of things in a rebase but the user needs to
-	// fix merge conflicts along the way. When this happens we queue up the next step
-	// so that after the next successful rebase continue we can continue from where we left off
-	if commandType == "rebase" && command == "continue" && c.onSuccessfulContinue != nil {
-		f := c.onSuccessfulContinue
-		c.onSuccessfulContinue = nil
-		return f()
-	}
-	if command == "abort" {
-		c.onSuccessfulContinue = nil
-	}
+	// // sometimes we need to do a sequence of things in a rebase but the user needs to
+	// // fix merge conflicts along the way. When this happens we queue up the next step
+	// // so that after the next successful rebase continue we can continue from where we left off
+	// if commandType == "rebase" && command == "continue" && c.onSuccessfulContinue != nil {
+	// 	f := c.onSuccessfulContinue
+	// 	c.onSuccessfulContinue = nil
+	// 	return f()
+	// }
+	// if command == "abort" {
+	// 	c.onSuccessfulContinue = nil
+	// }
 	return nil
 }
 

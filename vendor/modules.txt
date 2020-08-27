@@ -146,6 +146,9 @@ github.com/nicksnyder/go-i18n/v2/internal/plural
 # github.com/pelletier/go-toml v1.6.0
 ## explicit
 github.com/pelletier/go-toml
+# github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
+## explicit
+github.com/phayes/freeport
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/sergi/go-diff v1.1.0
