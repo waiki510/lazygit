@@ -170,15 +170,12 @@ func (m *ViewBufferManager) NewTask(f func(stop chan struct{}) error) error {
 		m.taskIDMutex.Lock()
 		m.newTaskId++
 		taskID := m.newTaskId
-		m.Log.Infof("starting task %d", taskID)
 		m.taskIDMutex.Unlock()
 
 		m.waitingMutex.Lock()
 		defer m.waitingMutex.Unlock()
 
-		m.Log.Infof("done waiting")
 		if taskID < m.newTaskId {
-			m.Log.Infof("returning cos the task is obsolete")
 			return
 		}
 
@@ -186,9 +183,7 @@ func (m *ViewBufferManager) NewTask(f func(stop chan struct{}) error) error {
 		notifyStopped := make(chan struct{})
 
 		if m.currentTask != nil {
-			m.Log.Info("asking task to stop")
 			m.currentTask.Stop()
-			m.Log.Info("task stopped")
 		}
 
 		m.currentTask = &Task{
@@ -203,7 +198,6 @@ func (m *ViewBufferManager) NewTask(f func(stop chan struct{}) error) error {
 				m.Log.Error(err) // might need an onError callback
 			}
 
-			m.Log.Infof("returning from task %d", taskID)
 			close(notifyStopped)
 		}()
 	}()
@@ -218,8 +212,6 @@ func (t *Task) Stop() {
 		return
 	}
 	close(t.stop)
-	t.Log.Info("closed stop channel, waiting for notifyStopped message")
 	<-t.notifyStopped
-	t.Log.Info("received notifystopped message")
 	t.stopped = true
 }
