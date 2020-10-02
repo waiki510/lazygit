@@ -9,27 +9,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// macs for some bizarre reason cap the number of watchable files to 256.
-// there's no obvious platform agonstic way to check the situation of the user's
-// computer so we're just arbitrarily capping at 200. This isn't so bad because
-// file watching is only really an added bonus for faster refreshing.
-const MAX_WATCHED_FILES = 50
-
 type fileWatcher struct {
 	Watcher          *fsnotify.Watcher
 	WatchedFilenames []string
 	Log              *logrus.Entry
 	Disabled         bool
+
+	// macs for some bizarre reason cap the number of watchable files to 256.
+	// there's no obvious platform agonstic way to check the situation of the user's
+	// computer so we're just arbitrarily capping at a small number in the default config.
+	// This isn't so bad because file watching is only really an added bonus for faster refreshing.
+	MaxWatchedFiles int
 }
 
-func NewFileWatcher(log *logrus.Entry) *fileWatcher {
-	// TODO: get this going again, and ensure we don't see any crashes from it
-	return &fileWatcher{
-		Disabled: true,
-	}
-
+func NewFileWatcher(log *logrus.Entry, maxWatchedFiles int) *fileWatcher {
 	watcher, err := fsnotify.NewWatcher()
-
 	if err != nil {
 		log.Error(err)
 		return &fileWatcher{
@@ -40,7 +34,8 @@ func NewFileWatcher(log *logrus.Entry) *fileWatcher {
 	return &fileWatcher{
 		Watcher:          watcher,
 		Log:              log,
-		WatchedFilenames: make([]string, 0, MAX_WATCHED_FILES),
+		WatchedFilenames: make([]string, 0, maxWatchedFiles),
+		MaxWatchedFiles:  maxWatchedFiles,
 	}
 }
 
@@ -88,7 +83,7 @@ func (w *fileWatcher) addFilesToFileWatcher(files []*models.File) error {
 		return err
 	}
 
-	for _, file := range files[0:min(MAX_WATCHED_FILES, len(files))] {
+	for _, file := range files[0:min(w.MaxWatchedFiles, len(files))] {
 		if file.Deleted {
 			continue
 		}
@@ -96,7 +91,8 @@ func (w *fileWatcher) addFilesToFileWatcher(files []*models.File) error {
 		if w.watchingFilename(filename) {
 			continue
 		}
-		if len(w.WatchedFilenames) > MAX_WATCHED_FILES {
+
+		if len(w.WatchedFilenames) > w.MaxWatchedFiles {
 			w.popOldestFilename()
 		}
 
@@ -116,7 +112,7 @@ func min(a int, b int) int {
 // NOTE: given that we often edit files ourselves, this may make us end up refreshing files too often
 // TODO: consider watching the whole directory recursively (could be more expensive)
 func (gui *Gui) watchFilesForChanges() {
-	gui.fileWatcher = NewFileWatcher(gui.Log)
+	gui.fileWatcher = NewFileWatcher(gui.Log, gui.maxWatchedFiles())
 	if gui.fileWatcher.Disabled {
 		return
 	}
@@ -131,7 +127,7 @@ func (gui *Gui) watchFilesForChanges() {
 				}
 				// only refresh if we're not already
 				if !gui.State.IsRefreshingFiles {
-					gui.refreshSidePanels(refreshOptions{mode: ASYNC, scope: []int{FILES}})
+					_ = gui.refreshSidePanels(refreshOptions{mode: ASYNC, scope: []int{FILES}})
 				}
 
 			// watch for errors
@@ -142,4 +138,8 @@ func (gui *Gui) watchFilesForChanges() {
 			}
 		}
 	}()
+}
+
+func (gui *Gui) maxWatchedFiles() int {
+	return gui.Config.GetUserConfig().GetInt("MaxWatchedFiles")
 }

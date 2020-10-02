@@ -281,6 +281,7 @@ update:
   method: prompt # can be: prompt | background | never
   days: 14 # how often a update is checked for
 reporting: 'undetermined' # one of: 'on' | 'off' | 'undetermined'
+maxWatchedFiles: 10 # OSX has a really low cap so we're being super safe as a default
 splashUpdatesIndex: 0
 confirmOnQuit: false
 quitOnTopLevelReturn: true

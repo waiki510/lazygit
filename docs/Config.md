@@ -54,6 +54,7 @@ Default path for the config file:
     method: prompt # can be: prompt | background | never
     days: 14 # how often an update is checked for
   reporting: 'undetermined' # one of: 'on' | 'off' | 'undetermined'
+  maxWatchedFiles: 10 # OSX has a really low cap so we're being super safe as a default
   confirmOnQuit: false
   # determines whether hitting 'esc' will quit the application when there is nothing to cancel/close
   quitOnTopLevelReturn: true
