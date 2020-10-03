@@ -83,8 +83,6 @@ func intArrToMap(arr []int) map[int]bool {
 }
 
 func (gui *Gui) refreshSidePanels(options refreshOptions) error {
-	gui.State.TempDisableFileWatching = false
-
 	if options.scope == nil {
 		gui.Log.Infof(
 			"refreshing all scopes in %s mode",
