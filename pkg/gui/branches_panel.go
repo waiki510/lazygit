@@ -149,6 +149,8 @@ func (gui *Gui) handleCheckoutRef(ref string, options handleCheckoutRefOptions) 
 	}
 
 	return gui.WithWaitingStatus(waitingStatus, func() error {
+		gui.State.TempDisableFileWatching = true
+
 		if err := gui.GitCommand.Checkout(ref, cmdOptions); err != nil {
 			// note, this will only work for english-language git commands. If we force git to use english, and the error isn't this one, then the user will receive an english command they may not understand. I'm not sure what the best solution to this is. Running the command once in english and a second time in the native language is one option
 

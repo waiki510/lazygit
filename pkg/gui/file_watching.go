@@ -125,8 +125,10 @@ func (gui *Gui) watchFilesForChanges() {
 					// for some reason we pick up chmod events when they don't actually happen
 					continue
 				}
-				// only refresh if we're not already
-				if !gui.State.IsRefreshingFiles {
+				// only refresh if we're not already.
+				// whenever we switch branches this code will be triggered but we don't want to
+				// render the results of `git status` because the files are in a half-way state.
+				if !gui.State.IsRefreshingFiles && !gui.State.TempDisableFileWatching {
 					_ = gui.refreshSidePanels(refreshOptions{mode: ASYNC, scope: []int{FILES}})
 				}
 
