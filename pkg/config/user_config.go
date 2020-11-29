@@ -169,6 +169,8 @@ type KeybindingFilesConfig struct {
 	ToggleStagedAll          string `yaml:"toggleStagedAll"`
 	ViewResetOptions         string `yaml:"viewResetOptions"`
 	Fetch                    string `yaml:"fetch"`
+	ToggleSelected           string `yaml:"toggleSelected"`
+	ToggleRangeSelected      string `yaml:"toggleRangeSelected"`
 }
 
 type KeybindingBranchesConfig struct {
@@ -388,6 +390,8 @@ func GetDefaultConfig() *UserConfig {
 				ToggleStagedAll:          "a",
 				ViewResetOptions:         "D",
 				Fetch:                    "f",
+				ToggleSelected:           "v",
+				ToggleRangeSelected:      "V",
 			},
 			Branches: KeybindingBranchesConfig{
 				CopyPullRequestURL:     "<c-y>",

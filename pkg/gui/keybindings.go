@@ -485,6 +485,13 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.LcCopyFileNameToClipboard,
 		},
 		{
+			ViewName:    "files",
+			Contexts:    []string{FILES_CONTEXT_KEY},
+			Key:         gui.getKey(config.Files.ToggleSelected),
+			Handler:     gui.wrappedHandler(gui.handleToggleFileSelectMode),
+			Description: gui.Tr.LcToggleFileSelectMode,
+		},
+		{
 			ViewName:    "",
 			Key:         gui.getKey(config.Universal.ExecuteCustomCommand),
 			Handler:     gui.handleCustomCommand,

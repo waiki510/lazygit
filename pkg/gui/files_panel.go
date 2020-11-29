@@ -189,22 +189,43 @@ func (gui *Gui) enterFile(forceSecondaryFocused bool, selectedLineIdx int) error
 }
 
 func (gui *Gui) handleFilePress() error {
-	file := gui.getSelectedFile()
-	if file == nil {
+	currentFile := gui.getSelectedFile()
+	if currentFile == nil {
 		return nil
 	}
 
-	if file.HasInlineMergeConflicts {
-		return gui.handleSwitchToMerge()
-	}
-
-	if file.HasUnstagedChanges {
-		if err := gui.GitCommand.StageFile(file.Name); err != nil {
-			return gui.surfaceError(err)
+	if gui.State.IsSelectingFileRange {
+		if currentFile.HasUnstagedChanges {
+			for _, file := range gui.getSelectedFiles() {
+				if file.HasUnstagedChanges {
+					if err := gui.GitCommand.StageFile(file.Name); err != nil {
+						return gui.surfaceError(err)
+					}
+				}
+			}
+		} else {
+			for _, file := range gui.getSelectedFiles() {
+				if !file.HasUnstagedChanges {
+					if err := gui.GitCommand.UnStageFile(file.Name, file.Tracked); err != nil {
+						return gui.surfaceError(err)
+					}
+				}
+			}
 		}
+		gui.State.IsSelectingFileRange = false
 	} else {
-		if err := gui.GitCommand.UnStageFile(file.Name, file.Tracked); err != nil {
-			return gui.surfaceError(err)
+		if currentFile.HasInlineMergeConflicts {
+			return gui.handleSwitchToMerge()
+		}
+
+		if currentFile.HasUnstagedChanges {
+			if err := gui.GitCommand.StageFile(currentFile.Name); err != nil {
+				return gui.surfaceError(err)
+			}
+		} else {
+			if err := gui.GitCommand.UnStageFile(currentFile.Name, currentFile.Tracked); err != nil {
+				return gui.surfaceError(err)
+			}
 		}
 	}
 
@@ -331,7 +352,7 @@ func (gui *Gui) handleCommitPress() error {
 		prefixReplace := commitPrefixConfig.Replace
 		rgx, err := regexp.Compile(prefixPattern)
 		if err != nil {
-			return gui.createErrorPanel(fmt.Sprintf("%s: %s", gui.Tr.LcCommitPrefixPatternError, err.Error()))
+			return gui.createErrorPanel(fmt.Sprintf("%s: %s", gui.Tr.CommitPrefixPatternError, err.Error()))
 		}
 		prefix := rgx.ReplaceAllString(gui.getCheckedOutBranch().Name, prefixReplace)
 		gui.renderString("commitMessage", prefix)
@@ -704,4 +725,98 @@ func (gui *Gui) handleStashChanges(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) handleCreateResetToUpstreamMenu(g *gocui.Gui, v *gocui.View) error {
 	return gui.createResetMenu("@{upstream}")
+}
+
+func (gui *Gui) handleToggleFileSelectMode() error {
+	gui.State.IsSelectingFileRange = !gui.State.IsSelectingFileRange
+
+	if gui.State.IsSelectingFileRange {
+		file := gui.getSelectedFile()
+		if file == nil {
+			return nil
+		}
+
+		gui.State.StartSelectedFileIdx = gui.State.Panels.Files.SelectedLineIdx
+		gui.State.EndSelectedFileIdx = gui.State.StartSelectedFileIdx
+	}
+
+	return gui.refreshSidePanels(refreshOptions{
+		mode:  ASYNC,
+		scope: []int{FILES},
+	})
+}
+
+func (gui *Gui) handleNewFileSelected() error {
+	// we need to get the files between this range and select them. Or do we? We should actually just keep note of the original file where we said we'd select a range.
+	if !gui.State.IsSelectingFileRange {
+		return nil
+	}
+
+	gui.State.EndSelectedFileIdx = gui.State.Panels.Files.SelectedLineIdx
+
+	return gui.refreshSidePanels(refreshOptions{
+		mode:  ASYNC,
+		scope: []int{FILES},
+	})
+}
+
+func (gui *Gui) selectedRangeFilenames() []string {
+	if !gui.State.IsSelectingFileRange {
+		return []string{}
+	}
+
+	filenames := []string{}
+	for _, file := range gui.getSelectedFiles() {
+		filenames = append(filenames, file.Name)
+	}
+
+	return filenames
+}
+
+func (gui *Gui) selectedRangeFilenamesMap() map[string]bool {
+	result := map[string]bool{}
+	for _, filename := range gui.selectedRangeFilenames() {
+		result[filename] = true
+	}
+
+	return result
+}
+
+func (gui *Gui) getSelectedFiles() []*models.File {
+	if !gui.State.IsSelectingFileRange {
+		currentFile := gui.getSelectedFile()
+		if currentFile == nil {
+			return []*models.File{}
+		}
+
+		return []*models.File{currentFile}
+	}
+
+	start, end := gui.selectedFileRangeBounds()
+
+	return gui.State.Files[start : end+1]
+}
+
+func (gui *Gui) selectedFileRangeBounds() (int, int) {
+	start := gui.State.StartSelectedFileIdx
+	end := gui.State.EndSelectedFileIdx
+
+	if end < start {
+		start, end = end, start
+	}
+
+	if start < 0 {
+		start = 0
+	}
+
+	lastIdx := len(gui.State.Files) - 1
+	if start > lastIdx {
+		start = lastIdx
+	}
+
+	if end > lastIdx {
+		end = lastIdx
+	}
+
+	return start, end
 }

@@ -351,6 +351,13 @@ type guiState struct {
 	// when you enter into a submodule we'll append the superproject's path to this array
 	// so that you can return to the superproject
 	RepoPathStack []string
+
+	// SelectedFilenames is for when you want to select multiple files at once
+	// for a bulk operation
+	// SelectedFilenames    map[string]bool
+	IsSelectingFileRange bool
+	StartSelectedFileIdx int
+	EndSelectedFileIdx   int
 }
 
 func (gui *Gui) resetState() {

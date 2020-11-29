@@ -29,15 +29,20 @@ func (gui *Gui) handleCreateDiscardMenu(g *gocui.Gui, v *gocui.View) error {
 			{
 				displayString: gui.Tr.LcDiscardAllChanges,
 				onPress: func() error {
-					if err := gui.GitCommand.DiscardAllFileChanges(file); err != nil {
-						return gui.surfaceError(err)
+					for _, file := range gui.getSelectedFiles() {
+						if err := gui.GitCommand.DiscardAllFileChanges(file); err != nil {
+							return gui.surfaceError(err)
+						}
 					}
+
+					gui.State.IsSelectingFileRange = false
+
 					return gui.refreshSidePanels(refreshOptions{mode: ASYNC, scope: []int{FILES}})
 				},
 			},
 		}
 
-		if file.HasStagedChanges && file.HasUnstagedChanges {
+		if !gui.State.IsSelectingFileRange && file.HasStagedChanges && file.HasUnstagedChanges {
 			menuItems = append(menuItems, &menuItem{
 				displayString: gui.Tr.LcDiscardUnstagedChanges,
 				onPress: func() error {

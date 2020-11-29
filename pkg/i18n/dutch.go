@@ -377,7 +377,7 @@ func dutchTranslationSet() TranslationSet {
 		LcCopyBranchNameToClipboard:         "copieer branch name naar clipboard",
 		LcCopyFileNameToClipboard:           "kopieer de bestandsnaam naar het klembord",
 		LcCopyCommitFileNameToClipboard:     "kopieer de vastgelegde bestandsnaam naar het klembord",
-		LcCommitPrefixPatternError:          "Fout in commitPrefix patroon",
+		CommitPrefixPatternError:            "Fout in commitPrefix patroon",
 		NoFilesStagedTitle:                  "geen bestanden gestaged",
 		NoFilesStagedPrompt:                 "Je hebt geen bestanden gestaged. Commit alle bestanden?",
 		BranchNotFoundTitle:                 "Branch niet gevonden",

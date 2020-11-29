@@ -14,6 +14,7 @@ type ListContext struct {
 	OnFocusLost         func() error
 	OnClickSelectedItem func() error
 	OnGetOptionsMap     func() map[string]string
+	OnNewLineSelected   func() error
 
 	// the boolean here tells us whether the item is nil. This is needed because you can't work it out on the calling end once the pointer is wrapped in an interface (unless you want to use reflection)
 	SelectedItem  func() (ListItem, bool)
@@ -161,19 +162,26 @@ func (lc *ListContext) handleLineChange(change int) error {
 		return err
 	}
 
-	selectedLineIdx := lc.GetPanelState().GetSelectedLineIdx()
-	if (change < 0 && selectedLineIdx == 0) || (change > 0 && selectedLineIdx == lc.GetItemsLength()-1) {
+	oldSelectedLineIdx := lc.GetPanelState().GetSelectedLineIdx()
+	if (change < 0 && oldSelectedLineIdx == 0) || (change > 0 && oldSelectedLineIdx == lc.GetItemsLength()-1) {
 		return nil
 	}
 
 	lc.Gui.changeSelectedLine(lc.GetPanelState(), lc.GetItemsLength(), change)
-	view.FocusPoint(0, lc.GetPanelState().GetSelectedLineIdx())
+	newSelectedLineIdx := lc.GetPanelState().GetSelectedLineIdx()
+	view.FocusPoint(0, newSelectedLineIdx)
 
 	if lc.ResetMainViewOriginOnFocus {
 		if err := lc.Gui.resetOrigin(lc.Gui.getMainView()); err != nil {
 			return err
 		}
 		if err := lc.Gui.resetOrigin(lc.Gui.getSecondaryView()); err != nil {
+			return err
+		}
+	}
+
+	if lc.OnNewLineSelected != nil {
+		if err := lc.OnNewLineSelected(); err != nil {
 			return err
 		}
 	}
@@ -266,11 +274,12 @@ func (gui *Gui) filesListContext() *ListContext {
 		GetPanelState:              func() IListPanelState { return gui.State.Panels.Files },
 		OnFocus:                    gui.focusAndSelectFile,
 		OnClickSelectedItem:        gui.handleFilePress,
+		OnNewLineSelected:          gui.handleNewFileSelected,
 		Gui:                        gui,
 		ResetMainViewOriginOnFocus: false,
 		Kind:                       SIDE_CONTEXT,
 		GetDisplayStrings: func() [][]string {
-			return presentation.GetFileListDisplayStrings(gui.State.Files, gui.State.Modes.Diffing.Ref, gui.State.Submodules)
+			return presentation.GetFileListDisplayStrings(gui.State.Files, gui.State.Modes.Diffing.Ref, gui.State.Submodules, gui.selectedRangeFilenamesMap())
 		},
 		SelectedItem: func() (ListItem, bool) {
 			item := gui.getSelectedFile()

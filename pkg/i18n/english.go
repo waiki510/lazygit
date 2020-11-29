@@ -387,7 +387,8 @@ type TranslationSet struct {
 	LcCopyBranchNameToClipboard         string
 	LcCopyFileNameToClipboard           string
 	LcCopyCommitFileNameToClipboard     string
-	LcCommitPrefixPatternError          string
+	CommitPrefixPatternError            string
+	LcToggleFileSelectMode              string
 	NoFilesStagedTitle                  string
 	NoFilesStagedPrompt                 string
 	BranchNotFoundTitle                 string
@@ -891,7 +892,8 @@ func englishTranslationSet() TranslationSet {
 		LcCopyBranchNameToClipboard:         "copy branch name to clipboard",
 		LcCopyFileNameToClipboard:           "copy the file name to the clipboard",
 		LcCopyCommitFileNameToClipboard:     "copy the committed file name to the clipboard",
-		LcCommitPrefixPatternError:          "Error in commitPrefix pattern",
+		CommitPrefixPatternError:            "Error in commitPrefix pattern",
+		LcToggleFileSelectMode:              "select file range",
 		NoFilesStagedTitle:                  "No files staged",
 		NoFilesStagedPrompt:                 "You have not staged any files. Commit all files?",
 		BranchNotFoundTitle:                 "Branch not found",

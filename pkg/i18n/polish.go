@@ -247,7 +247,7 @@ func polishTranslationSet() TranslationSet {
 		ReturnToRemotesList:                 `return to remotes list`,
 		IgnoreTracked:                       "Ignore tracked file",
 		IgnoreTrackedPrompt:                 "Are you sure you want to ignore a tracked file?",
-		LcCommitPrefixPatternError:          "Error in commitPrefix pattern",
+		CommitPrefixPatternError:            "Error in commitPrefix pattern",
 		NoFilesStagedTitle:                  "No files staged",
 		NoFilesStagedPrompt:                 "You have not staged any files. Commit all files?",
 		BranchNotFoundTitle:                 "Branch not found",
