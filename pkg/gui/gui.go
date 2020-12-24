@@ -666,6 +666,8 @@ func (gui *Gui) setColorScheme() error {
 
 	gui.g.FgColor = theme.InactiveBorderColor
 	gui.g.SelFgColor = theme.ActiveBorderColor
+	gui.g.FrameColor = theme.InactiveBorderColor
+	gui.g.SelFrameColor = theme.ActiveBorderColor
 
 	return nil
 }

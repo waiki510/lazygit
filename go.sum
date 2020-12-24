@@ -72,6 +72,8 @@ github.com/jesseduffield/go-git/v5 v5.1.2-0.20201006095850-341962be15a4 h1:GOQrm
 github.com/jesseduffield/go-git/v5 v5.1.2-0.20201006095850-341962be15a4/go.mod h1:nGNEErzf+NRznT+N2SWqmHnDnF9aLgANB1CUNEan09o=
 github.com/jesseduffield/gocui v0.3.1-0.20201224035907-c7d2b674dc4e h1:/SZjFO0SkpaAlXLyhlYEiIOwWEYiHu1GVfVrFw81Qmg=
 github.com/jesseduffield/gocui v0.3.1-0.20201224035907-c7d2b674dc4e/go.mod h1:9LmtJcK+Kwiuc2huslzS37uFJPdHka2Cs/cQ06JZdbk=
+github.com/jesseduffield/gocui v0.3.1-0.20201224041937-f5a9733d1860 h1:1xfQM6T5A4jqcVvUnYaKR6bGrOhDLWQsp79JFNJpzcQ=
+github.com/jesseduffield/gocui v0.3.1-0.20201224041937-f5a9733d1860/go.mod h1:9LmtJcK+Kwiuc2huslzS37uFJPdHka2Cs/cQ06JZdbk=
 github.com/jesseduffield/yaml v2.1.0+incompatible h1:HWQJ1gIv2zHKbDYNp0Jwjlj24K8aqpFHnMCynY1EpmE=
 github.com/jesseduffield/yaml v2.1.0+incompatible/go.mod h1:w0xGhOSIJCGYYW+hnFPTutCy5aACpkcwbmORt5axGqk=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
