@@ -206,6 +206,8 @@ func (gui *Gui) getKey(key string) interface{} {
 func (gui *Gui) GetInitialKeybindings() []*Binding {
 	config := gui.Config.GetUserConfig().Keybinding
 
+	tagsController := NewTagsController(gui)
+
 	bindings := []*Binding{
 		{
 			ViewName: "",
@@ -635,35 +637,35 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "branches",
 			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.Select),
-			Handler:     gui.withSelectedTag(gui.handleCheckoutTag),
+			Handler:     tagsController.WithSelectedTag(tagsController.HandleCheckout),
 			Description: gui.Tr.LcCheckout,
 		},
 		{
 			ViewName:    "branches",
 			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.Remove),
-			Handler:     gui.withSelectedTag(gui.handleDeleteTag),
+			Handler:     tagsController.WithSelectedTag(tagsController.HandleDelete),
 			Description: gui.Tr.LcDeleteTag,
 		},
 		{
 			ViewName:    "branches",
 			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Branches.PushTag),
-			Handler:     gui.withSelectedTag(gui.handlePushTag),
+			Handler:     tagsController.WithSelectedTag(tagsController.HandlePush),
 			Description: gui.Tr.LcPushTag,
 		},
 		{
 			ViewName:    "branches",
 			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.New),
-			Handler:     gui.handleCreateTag,
+			Handler:     tagsController.HandleCreate,
 			Description: gui.Tr.LcCreateTag,
 		},
 		{
 			ViewName:    "branches",
 			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Commits.ViewResetOptions),
-			Handler:     gui.withSelectedTag(gui.handleCreateResetToTagMenu),
+			Handler:     tagsController.WithSelectedTag(tagsController.HandleCreateResetMenu),
 			Description: gui.Tr.LcViewResetOptions,
 			OpensMenu:   true,
 		},

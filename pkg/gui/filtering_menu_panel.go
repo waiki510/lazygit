@@ -34,9 +34,9 @@ func (gui *Gui) handleCreateFilteringMenuPanel() error {
 	menuItems = append(menuItems, &menuItem{
 		displayString: gui.Tr.LcFilterPathOption,
 		onPress: func() error {
-			return gui.prompt(promptOpts{
-				title: gui.Tr.LcEnterFileName,
-				handleConfirm: func(response string) error {
+			return gui.Prompt(PromptOpts{
+				Title: gui.Tr.LcEnterFileName,
+				HandleConfirm: func(response string) error {
 					return gui.setFiltering(strings.TrimSpace(response))
 				},
 			})

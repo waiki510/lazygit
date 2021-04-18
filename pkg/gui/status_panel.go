@@ -55,7 +55,7 @@ func cursorInSubstring(cx int, prefix string, substring string) bool {
 
 func (gui *Gui) handleCheckForUpdate() error {
 	gui.Updater.CheckForNewUpdate(gui.onUserUpdateCheckFinish, true)
-	return gui.createLoaderPanel(gui.Tr.CheckingForUpdates)
+	return gui.CreateLoaderPanel(gui.Tr.CheckingForUpdates)
 }
 
 func (gui *Gui) handleStatusClick() error {
@@ -70,7 +70,7 @@ func (gui *Gui) handleStatusClick() error {
 		return nil
 	}
 
-	if err := gui.pushContext(gui.State.Contexts.Status); err != nil {
+	if err := gui.PushContext(gui.State.Contexts.Status); err != nil {
 		return err
 	}
 
@@ -115,10 +115,10 @@ func (gui *Gui) handleStatusSelect() error {
 			gui.Tr.ReleaseNotes,
 		}, "\n\n")
 
-	return gui.refreshMainViews(refreshMainOpts{
-		main: &viewUpdateOpts{
-			title: "",
-			task:  NewRenderStringTask(dashboardString),
+	return gui.RefreshMainViews(RefreshMainOpts{
+		Main: &ViewUpdateOpts{
+			Title: "",
+			Task:  NewRenderStringTask(dashboardString),
 		},
 	})
 }

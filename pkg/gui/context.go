@@ -81,15 +81,15 @@ func (gui *Gui) replaceContext(c Context) error {
 	return nil
 }
 
-func (gui *Gui) pushContext(c Context) error {
+func (gui *Gui) PushContext(c Context) error {
 	gui.g.Update(func(*gocui.Gui) error {
-		return gui.pushContextDirect(c)
+		return gui.PushContextDirect(c)
 	})
 
 	return nil
 }
 
-func (gui *Gui) pushContextDirect(c Context) error {
+func (gui *Gui) PushContextDirect(c Context) error {
 	gui.State.ContextManager.Lock()
 
 	// push onto stack
@@ -123,7 +123,7 @@ func (gui *Gui) pushContextDirect(c Context) error {
 // want to switch to: you only know the view that you want to switch to. It will
 // look up the context currently active for that view and switch to that context
 func (gui *Gui) pushContextWithView(viewName string) error {
-	return gui.pushContext(gui.State.ViewContextMap[viewName])
+	return gui.PushContext(gui.State.ViewContextMap[viewName])
 }
 
 func (gui *Gui) returnFromContext() error {

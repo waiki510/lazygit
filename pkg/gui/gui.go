@@ -71,11 +71,11 @@ type Gui struct {
 	OSCommand  *oscommands.OSCommand
 
 	// this is the state of the GUI for the current repo
-	State *guiState
+	State *GuiState
 
 	// this is a mapping of repos to gui states, so that we can restore the original
 	// gui state when returning from a subrepo
-	RepoStateMap         map[Repo]*guiState
+	RepoStateMap         map[Repo]*GuiState
 	Config               config.AppConfigurer
 	Tr                   *i18n.TranslationSet
 	Updater              *updates.Updater
@@ -116,6 +116,12 @@ type Gui struct {
 
 	// the extras window contains things like the command log
 	ShowExtrasWindow bool
+
+	Controllers Controllers
+}
+
+type Controllers struct {
+	Tags TagsController
 }
 
 type listPanelState struct {
@@ -310,7 +316,7 @@ type guiMutexes struct {
 	SubprocessMutex       sync.Mutex
 }
 
-type guiState struct {
+type GuiState struct {
 	// the file panels (files and commit files) can render as a tree, so we have
 	// managers for them which handle rendering a flat list of files in tree form
 	FileManager       *filetree.FileManager
@@ -400,7 +406,7 @@ func (gui *Gui) resetState(filterPath string, reuseState bool) {
 		initialContext = contexts.BranchCommits
 	}
 
-	gui.State = &guiState{
+	gui.State = &GuiState{
 		FileManager:           filetree.NewFileManager(make([]*models.File, 0), gui.Log, showTree),
 		CommitFileManager:     filetree.NewCommitFileManager(make([]*models.CommitFile, 0), gui.Log, showTree),
 		Commits:               make([]*models.Commit, 0),
@@ -464,7 +470,7 @@ func NewGui(log *logrus.Entry, gitCommand *commands.GitCommand, oSCommand *oscom
 		viewBufferManagerMap: map[string]*tasks.ViewBufferManager{},
 		showRecentRepos:      showRecentRepos,
 		RepoPathStack:        []string{},
-		RepoStateMap:         map[Repo]*guiState{},
+		RepoStateMap:         map[Repo]*GuiState{},
 		CmdLog:               []string{},
 		ShowExtrasWindow:     config.GetUserConfig().Gui.ShowCommandLog,
 	}
@@ -478,6 +484,26 @@ func NewGui(log *logrus.Entry, gitCommand *commands.GitCommand, oSCommand *oscom
 	gui.OnRunCommand = onRunCommand
 
 	return gui, nil
+}
+
+func (gui *Gui) GetGitCommand() *commands.GitCommand {
+	return gui.GitCommand
+}
+
+func (gui *Gui) GetOSCommand() *oscommands.OSCommand {
+	return gui.OSCommand
+}
+
+func (gui *Gui) GetLog() *logrus.Entry {
+	return gui.Log
+}
+
+func (gui *Gui) GetTr() *i18n.TranslationSet {
+	return gui.Tr
+}
+
+func (gui *Gui) GetState() *GuiState {
+	return gui.State
 }
 
 // Run setup the gui with keybindings and start the mainloop
@@ -594,7 +620,7 @@ func (gui *Gui) runSubprocessWithSuspenseAndRefresh(subprocess *exec.Cmd) error 
 		return err
 	}
 
-	if err := gui.refreshSidePanels(refreshOptions{mode: ASYNC}); err != nil {
+	if err := gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC}); err != nil {
 		return err
 	}
 
@@ -615,7 +641,7 @@ func (gui *Gui) runSubprocessWithSuspense(subprocess *exec.Cmd) (bool, error) {
 	}
 
 	if err := gui.g.Suspend(); err != nil {
-		return false, gui.surfaceError(err)
+		return false, gui.SurfaceError(err)
 	}
 
 	gui.PauseBackgroundThreads = true
@@ -628,7 +654,7 @@ func (gui *Gui) runSubprocessWithSuspense(subprocess *exec.Cmd) (bool, error) {
 
 	gui.PauseBackgroundThreads = false
 
-	return cmdErr == nil, gui.surfaceError(cmdErr)
+	return cmdErr == nil, gui.SurfaceError(cmdErr)
 }
 
 func (gui *Gui) runSubprocess(subprocess *exec.Cmd) error {
@@ -659,7 +685,7 @@ func (gui *Gui) loadNewRepo() error {
 		return err
 	}
 
-	if err := gui.refreshSidePanels(refreshOptions{mode: ASYNC}); err != nil {
+	if err := gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC}); err != nil {
 		return err
 	}
 
@@ -675,7 +701,7 @@ func (gui *Gui) showInitialPopups(tasks []func(chan struct{}) error) {
 			task := task
 			go utils.Safe(func() {
 				if err := task(done); err != nil {
-					_ = gui.surfaceError(err)
+					_ = gui.SurfaceError(err)
 				}
 			})
 
@@ -692,11 +718,11 @@ func (gui *Gui) showIntroPopupMessage(done chan struct{}) error {
 		return gui.Config.SaveAppState()
 	}
 
-	return gui.ask(askOpts{
-		title:         "",
-		prompt:        gui.Tr.IntroPopupMessage,
-		handleConfirm: onConfirm,
-		handleClose:   onConfirm,
+	return gui.Ask(AskOpts{
+		Title:         "",
+		Prompt:        gui.Tr.IntroPopupMessage,
+		HandleConfirm: onConfirm,
+		HandleClose:   onConfirm,
 	})
 }
 
@@ -727,9 +753,9 @@ func (gui *Gui) startBackgroundFetch() {
 	}
 	err := gui.fetch(false, "")
 	if err != nil && strings.Contains(err.Error(), "exit status 128") && isNew {
-		_ = gui.ask(askOpts{
-			title:  gui.Tr.NoAutomaticGitFetchTitle,
-			prompt: gui.Tr.NoAutomaticGitFetchBody,
+		_ = gui.Ask(AskOpts{
+			Title:  gui.Tr.NoAutomaticGitFetchTitle,
+			Prompt: gui.Tr.NoAutomaticGitFetchBody,
 		})
 	} else {
 		gui.goEvery(time.Second*time.Duration(userConfig.Refresher.FetchInterval), gui.stopChan, func() error {

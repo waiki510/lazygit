@@ -153,7 +153,7 @@ func (gui *Gui) scrollDownConfirmationPanel() error {
 }
 
 func (gui *Gui) handleRefresh() error {
-	return gui.refreshSidePanels(refreshOptions{mode: ASYNC})
+	return gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC})
 }
 
 func (gui *Gui) handleMouseDownMain() error {
@@ -193,16 +193,16 @@ func (gui *Gui) fetch(canPromptForCredentials bool, span string) (err error) {
 
 	fetchOpts := commands.FetchOptions{}
 	if canPromptForCredentials {
-		fetchOpts.PromptUserForCredential = gui.promptUserForCredential
+		fetchOpts.PromptUserForCredential = gui.PromptUserForCredential
 	}
 
 	err = gui.GitCommand.WithSpan(span).Fetch(fetchOpts)
 
 	if canPromptForCredentials && err != nil && strings.Contains(err.Error(), "exit status 128") {
-		_ = gui.createErrorPanel(gui.Tr.PassUnameWrong)
+		_ = gui.CreateErrorPanel(gui.Tr.PassUnameWrong)
 	}
 
-	_ = gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{BRANCHES, COMMITS, REMOTES, TAGS}, mode: ASYNC})
+	_ = gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{BRANCHES, COMMITS, REMOTES, TAGS}, Mode: ASYNC})
 
 	return err
 }
@@ -216,7 +216,7 @@ func (gui *Gui) handleCopySelectedSideContextItemToClipboard() error {
 	}
 
 	if err := gui.OSCommand.WithSpan(gui.Tr.Spans.CopyToClipboard).CopyToClipboard(itemId); err != nil {
-		return gui.surfaceError(err)
+		return gui.SurfaceError(err)
 	}
 
 	truncatedItemId := utils.TruncateWithEllipsis(strings.Replace(itemId, "\n", " ", -1), 50)

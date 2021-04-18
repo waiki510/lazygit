@@ -84,7 +84,7 @@ func (gui *Gui) handleTogglePanel() error {
 func (gui *Gui) handleStagingEscape() error {
 	gui.escapeLineByLinePanel()
 
-	return gui.pushContext(gui.State.Contexts.Files)
+	return gui.PushContext(gui.State.Contexts.Files)
 }
 
 func (gui *Gui) handleToggleStagedSelection() error {
@@ -101,21 +101,21 @@ func (gui *Gui) handleResetSelection() error {
 		}
 
 		if !gui.Config.GetUserConfig().Gui.SkipUnstageLineWarning {
-			return gui.ask(askOpts{
-				title:               gui.Tr.UnstageLinesTitle,
-				prompt:              gui.Tr.UnstageLinesPrompt,
-				handlersManageFocus: true,
-				handleConfirm: func() error {
+			return gui.Ask(AskOpts{
+				Title:               gui.Tr.UnstageLinesTitle,
+				Prompt:              gui.Tr.UnstageLinesPrompt,
+				HandlersManageFocus: true,
+				HandleConfirm: func() error {
 					return gui.withLBLActiveCheck(func(state *lBlPanelState) error {
-						if err := gui.pushContext(gui.State.Contexts.Staging); err != nil {
+						if err := gui.PushContext(gui.State.Contexts.Staging); err != nil {
 							return err
 						}
 
 						return gui.applySelection(true, state)
 					})
 				},
-				handleClose: func() error {
-					return gui.pushContext(gui.State.Contexts.Staging)
+				HandleClose: func() error {
+					return gui.PushContext(gui.State.Contexts.Staging)
 				},
 			})
 		} else {
@@ -144,14 +144,14 @@ func (gui *Gui) applySelection(reverse bool, state *lBlPanelState) error {
 	}
 	err := gui.GitCommand.WithSpan(gui.Tr.Spans.ApplyPatch).ApplyPatch(patch, applyFlags...)
 	if err != nil {
-		return gui.surfaceError(err)
+		return gui.SurfaceError(err)
 	}
 
 	if state.SelectMode == RANGE {
 		state.SelectMode = LINE
 	}
 
-	if err := gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{FILES}}); err != nil {
+	if err := gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}}); err != nil {
 		return err
 	}
 	if err := gui.refreshStagingPanel(false, -1, state); err != nil {

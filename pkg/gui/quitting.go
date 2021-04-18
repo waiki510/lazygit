@@ -40,7 +40,7 @@ func (gui *Gui) handleTopLevelReturn() error {
 	parentContext, hasParent := currentContext.GetParentContext()
 	if hasParent && currentContext != nil && parentContext != nil {
 		// TODO: think about whether this should be marked as a return rather than adding to the stack
-		return gui.pushContext(parentContext)
+		return gui.PushContext(parentContext)
 	}
 
 	for _, mode := range gui.modeStatuses() {
@@ -73,10 +73,10 @@ func (gui *Gui) quit() error {
 	}
 
 	if gui.Config.GetUserConfig().ConfirmOnQuit {
-		return gui.ask(askOpts{
-			title:  "",
-			prompt: gui.Tr.ConfirmQuit,
-			handleConfirm: func() error {
+		return gui.Ask(AskOpts{
+			Title:  "",
+			Prompt: gui.Tr.ConfirmQuit,
+			HandleConfirm: func() error {
 				return gocui.ErrQuit
 			},
 		})

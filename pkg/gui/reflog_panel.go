@@ -29,10 +29,10 @@ func (gui *Gui) handleReflogCommitSelect() error {
 		task = NewRunPtyTask(cmd)
 	}
 
-	return gui.refreshMainViews(refreshMainOpts{
-		main: &viewUpdateOpts{
-			title: "Reflog Entry",
-			task:  task,
+	return gui.RefreshMainViews(RefreshMainOpts{
+		Main: &ViewUpdateOpts{
+			Title: "Reflog Entry",
+			Task:  task,
 		},
 	})
 }
@@ -56,7 +56,7 @@ func (gui *Gui) refreshReflogCommits() error {
 	refresh := func(stateCommits *[]*models.Commit, filterPath string) error {
 		commits, onlyObtainedNewReflogCommits, err := gui.GitCommand.GetReflogCommits(lastReflogCommit, filterPath)
 		if err != nil {
-			return gui.surfaceError(err)
+			return gui.SurfaceError(err)
 		}
 
 		if onlyObtainedNewReflogCommits {
@@ -88,11 +88,11 @@ func (gui *Gui) handleCheckoutReflogCommit() error {
 		return nil
 	}
 
-	err := gui.ask(askOpts{
-		title:  gui.Tr.LcCheckoutCommit,
-		prompt: gui.Tr.SureCheckoutThisCommit,
-		handleConfirm: func() error {
-			return gui.handleCheckoutRef(commit.Sha, handleCheckoutRefOptions{span: gui.Tr.Spans.CheckoutReflogCommit})
+	err := gui.Ask(AskOpts{
+		Title:  gui.Tr.LcCheckoutCommit,
+		Prompt: gui.Tr.SureCheckoutThisCommit,
+		HandleConfirm: func() error {
+			return gui.HandleCheckoutRef(commit.Sha, HandleCheckoutRefOptions{Span: gui.Tr.Spans.CheckoutReflogCommit})
 		},
 	})
 	if err != nil {
@@ -107,7 +107,7 @@ func (gui *Gui) handleCheckoutReflogCommit() error {
 func (gui *Gui) handleCreateReflogResetMenu() error {
 	commit := gui.getSelectedReflogCommit()
 
-	return gui.createResetMenu(commit.Sha)
+	return gui.CreateResetMenu(commit.Sha)
 }
 
 func (gui *Gui) handleViewReflogCommitFiles() error {

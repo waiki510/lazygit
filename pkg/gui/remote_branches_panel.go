@@ -30,16 +30,16 @@ func (gui *Gui) handleRemoteBranchSelect() error {
 		task = NewRunCommandTask(cmd)
 	}
 
-	return gui.refreshMainViews(refreshMainOpts{
-		main: &viewUpdateOpts{
-			title: "Remote Branch",
-			task:  task,
+	return gui.RefreshMainViews(RefreshMainOpts{
+		Main: &ViewUpdateOpts{
+			Title: "Remote Branch",
+			Task:  task,
 		},
 	})
 }
 
 func (gui *Gui) handleRemoteBranchesEscape() error {
-	return gui.pushContext(gui.State.Contexts.Remotes)
+	return gui.PushContext(gui.State.Contexts.Remotes)
 }
 
 func (gui *Gui) handleMergeRemoteBranch() error {
@@ -54,15 +54,15 @@ func (gui *Gui) handleDeleteRemoteBranch() error {
 	}
 	message := fmt.Sprintf("%s '%s'?", gui.Tr.DeleteRemoteBranchMessage, remoteBranch.FullName())
 
-	return gui.ask(askOpts{
-		title:  gui.Tr.DeleteRemoteBranch,
-		prompt: message,
-		handleConfirm: func() error {
+	return gui.Ask(AskOpts{
+		Title:  gui.Tr.DeleteRemoteBranch,
+		Prompt: message,
+		HandleConfirm: func() error {
 			return gui.WithWaitingStatus(gui.Tr.DeletingStatus, func() error {
-				err := gui.GitCommand.WithSpan(gui.Tr.Spans.DeleteRemoteBranch).DeleteRemoteBranch(remoteBranch.RemoteName, remoteBranch.Name, gui.promptUserForCredential)
-				gui.handleCredentialsPopup(err)
+				err := gui.GitCommand.WithSpan(gui.Tr.Spans.DeleteRemoteBranch).DeleteRemoteBranch(remoteBranch.RemoteName, remoteBranch.Name, gui.PromptUserForCredential)
+				gui.HandleCredentialsPopup(err)
 
-				return gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{BRANCHES, REMOTES}})
+				return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{BRANCHES, REMOTES}})
 			})
 		},
 	})
@@ -85,15 +85,15 @@ func (gui *Gui) handleSetBranchUpstream() error {
 		},
 	)
 
-	return gui.ask(askOpts{
-		title:  gui.Tr.SetUpstreamTitle,
-		prompt: message,
-		handleConfirm: func() error {
+	return gui.Ask(AskOpts{
+		Title:  gui.Tr.SetUpstreamTitle,
+		Prompt: message,
+		HandleConfirm: func() error {
 			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.SetBranchUpstream).SetBranchUpstream(selectedBranch.RemoteName, selectedBranch.Name, checkedOutBranch.Name); err != nil {
 				return err
 			}
 
-			return gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{BRANCHES, REMOTES}})
+			return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{BRANCHES, REMOTES}})
 		},
 	})
 }
@@ -104,5 +104,5 @@ func (gui *Gui) handleCreateResetToRemoteBranchMenu() error {
 		return nil
 	}
 
-	return gui.createResetMenu(selectedBranch.FullName())
+	return gui.CreateResetMenu(selectedBranch.FullName())
 }

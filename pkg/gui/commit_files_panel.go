@@ -47,12 +47,12 @@ func (gui *Gui) handleCommitFileSelect() error {
 	)
 	task := NewRunPtyTask(cmd)
 
-	return gui.refreshMainViews(refreshMainOpts{
-		main: &viewUpdateOpts{
-			title: "Patch",
-			task:  task,
+	return gui.RefreshMainViews(RefreshMainOpts{
+		Main: &ViewUpdateOpts{
+			Title: "Patch",
+			Task:  task,
 		},
-		secondary: gui.secondaryPatchPanelUpdateOpts(),
+		Secondary: gui.secondaryPatchPanelUpdateOpts(),
 	})
 }
 
@@ -63,10 +63,10 @@ func (gui *Gui) handleCheckoutCommitFile() error {
 	}
 
 	if err := gui.GitCommand.WithSpan(gui.Tr.Spans.CheckoutFile).CheckoutFile(gui.State.CommitFileManager.GetParent(), node.GetPath()); err != nil {
-		return gui.surfaceError(err)
+		return gui.SurfaceError(err)
 	}
 
-	return gui.refreshSidePanels(refreshOptions{mode: ASYNC})
+	return gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC})
 }
 
 func (gui *Gui) handleDiscardOldFileChange() error {
@@ -76,10 +76,10 @@ func (gui *Gui) handleDiscardOldFileChange() error {
 
 	fileName := gui.getSelectedCommitFileName()
 
-	return gui.ask(askOpts{
-		title:  gui.Tr.DiscardFileChangesTitle,
-		prompt: gui.Tr.DiscardFileChangesPrompt,
-		handleConfirm: func() error {
+	return gui.Ask(AskOpts{
+		Title:  gui.Tr.DiscardFileChangesTitle,
+		Prompt: gui.Tr.DiscardFileChangesPrompt,
+		HandleConfirm: func() error {
 			return gui.WithWaitingStatus(gui.Tr.RebasingStatus, func() error {
 				if err := gui.GitCommand.WithSpan(gui.Tr.Spans.DiscardOldFileChange).DiscardOldFileChanges(gui.State.Commits, gui.State.Panels.Commits.SelectedLineIdx, fileName); err != nil {
 					if err := gui.handleGenericMergeCommandResult(err); err != nil {
@@ -87,7 +87,7 @@ func (gui *Gui) handleDiscardOldFileChange() error {
 					}
 				}
 
-				return gui.refreshSidePanels(refreshOptions{mode: BLOCK_UI})
+				return gui.RefreshSidePanels(RefreshOptions{Mode: BLOCK_UI})
 			})
 		},
 	})
@@ -106,7 +106,7 @@ func (gui *Gui) refreshCommitFilesView() error {
 
 	files, err := gui.GitCommand.GetFilesInDiff(from, to, reverse)
 	if err != nil {
-		return gui.surfaceError(err)
+		return gui.SurfaceError(err)
 	}
 	gui.State.CommitFileManager.SetFiles(files, to)
 
@@ -129,7 +129,7 @@ func (gui *Gui) handleEditCommitFile() error {
 	}
 
 	if node.File == nil {
-		return gui.createErrorPanel(gui.Tr.ErrCannotEditDirectory)
+		return gui.CreateErrorPanel(gui.Tr.ErrCannotEditDirectory)
 	}
 
 	return gui.editFile(node.GetPath())
@@ -163,7 +163,7 @@ func (gui *Gui) handleToggleFileForPatch() error {
 		})
 
 		if err != nil {
-			return gui.surfaceError(err)
+			return gui.SurfaceError(err)
 		}
 
 		if gui.GitCommand.PatchManager.IsEmpty() {
@@ -174,10 +174,10 @@ func (gui *Gui) handleToggleFileForPatch() error {
 	}
 
 	if gui.GitCommand.PatchManager.Active() && gui.GitCommand.PatchManager.To != gui.State.CommitFileManager.GetParent() {
-		return gui.ask(askOpts{
-			title:  gui.Tr.DiscardPatch,
-			prompt: gui.Tr.DiscardPatchConfirm,
-			handleConfirm: func() error {
+		return gui.Ask(AskOpts{
+			Title:  gui.Tr.DiscardPatch,
+			Prompt: gui.Tr.DiscardPatchConfirm,
+			HandleConfirm: func() error {
 				gui.GitCommand.PatchManager.Reset()
 				return toggleTheFile()
 			},
@@ -218,23 +218,23 @@ func (gui *Gui) enterCommitFile(selectedLineIdx int) error {
 			}
 		}
 
-		if err := gui.pushContext(gui.State.Contexts.PatchBuilding); err != nil {
+		if err := gui.PushContext(gui.State.Contexts.PatchBuilding); err != nil {
 			return err
 		}
 		return gui.handleRefreshPatchBuildingPanel(selectedLineIdx)
 	}
 
 	if gui.GitCommand.PatchManager.Active() && gui.GitCommand.PatchManager.To != gui.State.CommitFileManager.GetParent() {
-		return gui.ask(askOpts{
-			title:               gui.Tr.DiscardPatch,
-			prompt:              gui.Tr.DiscardPatchConfirm,
-			handlersManageFocus: true,
-			handleConfirm: func() error {
+		return gui.Ask(AskOpts{
+			Title:               gui.Tr.DiscardPatch,
+			Prompt:              gui.Tr.DiscardPatchConfirm,
+			HandlersManageFocus: true,
+			HandleConfirm: func() error {
 				gui.GitCommand.PatchManager.Reset()
 				return enterTheFile(selectedLineIdx)
 			},
-			handleClose: func() error {
-				return gui.pushContext(gui.State.Contexts.CommitFiles)
+			HandleClose: func() error {
+				return gui.PushContext(gui.State.Contexts.CommitFiles)
 			},
 		})
 	}
@@ -272,7 +272,7 @@ func (gui *Gui) switchToCommitFilesContext(refName string, canRebase bool, conte
 		return err
 	}
 
-	return gui.pushContext(gui.State.Contexts.CommitFiles)
+	return gui.PushContext(gui.State.Contexts.CommitFiles)
 }
 
 // NOTE: this is very similar to handleToggleFileTreeView, could be DRY'd with generics

@@ -15,7 +15,7 @@ func (gui *Gui) withGpgHandling(cmdStr string, waitingStatus string, onSuccess f
 				return err
 			}
 		}
-		if err := gui.refreshSidePanels(refreshOptions{mode: ASYNC}); err != nil {
+		if err := gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC}); err != nil {
 			return err
 		}
 
@@ -33,7 +33,7 @@ func (gui *Gui) withGpgHandling(cmdStr string, waitingStatus string, onSuccess f
 				}
 			}
 
-			return gui.refreshSidePanels(refreshOptions{mode: ASYNC})
+			return gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC})
 		})
 	}
 

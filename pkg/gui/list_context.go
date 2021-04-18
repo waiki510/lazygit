@@ -175,7 +175,7 @@ func (lc *ListContext) handleClick() error {
 	newSelectedLineIdx := view.SelectedLineIdx()
 
 	// we need to focus the view
-	if err := lc.Gui.pushContext(lc); err != nil {
+	if err := lc.Gui.PushContext(lc); err != nil {
 		return err
 	}
 

@@ -189,10 +189,10 @@ func (gui *Gui) refreshMergePanel() error {
 	panelState := gui.State.Panels.Merging
 	cat, err := gui.catSelectedFile()
 	if err != nil {
-		return gui.refreshMainViews(refreshMainOpts{
-			main: &viewUpdateOpts{
-				title: "",
-				task:  NewRenderStringTask(err.Error()),
+		return gui.RefreshMainViews(RefreshMainOpts{
+			Main: &ViewUpdateOpts{
+				Title: "",
+				Task:  NewRenderStringTask(err.Error()),
 			},
 		})
 	}
@@ -213,11 +213,11 @@ func (gui *Gui) refreshMergePanel() error {
 		return err
 	}
 
-	return gui.refreshMainViews(refreshMainOpts{
-		main: &viewUpdateOpts{
-			title:  gui.Tr.MergeConflictsTitle,
-			task:   NewRenderStringWithoutScrollTask(content),
-			noWrap: true,
+	return gui.RefreshMainViews(RefreshMainOpts{
+		Main: &ViewUpdateOpts{
+			Title:  gui.Tr.MergeConflictsTitle,
+			Task:   NewRenderStringWithoutScrollTask(content),
+			NoWrap: true,
 		},
 	})
 }
@@ -277,13 +277,13 @@ func (gui *Gui) handleEscapeMerge() error {
 	gui.takeOverMergeConflictScrolling()
 
 	gui.State.Panels.Merging.EditHistory = stack.New()
-	if err := gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{FILES}}); err != nil {
+	if err := gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}}); err != nil {
 		return err
 	}
 	// it's possible this method won't be called from the merging view so we need to
 	// ensure we only 'return' focus if we already have it
 	if gui.g.CurrentView() == gui.Views.Main {
-		return gui.pushContext(gui.State.Contexts.Files)
+		return gui.PushContext(gui.State.Contexts.Files)
 	}
 	return nil
 }
@@ -292,7 +292,7 @@ func (gui *Gui) handleCompleteMerge() error {
 	if err := gui.stageSelectedFile(); err != nil {
 		return err
 	}
-	if err := gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{FILES}}); err != nil {
+	if err := gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}}); err != nil {
 		return err
 	}
 	// if we got conflicts after unstashing, we don't want to call any git
@@ -311,19 +311,19 @@ func (gui *Gui) handleCompleteMerge() error {
 func (gui *Gui) promptToContinueRebase() error {
 	gui.takeOverMergeConflictScrolling()
 
-	return gui.ask(askOpts{
-		title:               "continue",
-		prompt:              gui.Tr.ConflictsResolved,
-		handlersManageFocus: true,
-		handleConfirm: func() error {
-			if err := gui.pushContext(gui.State.Contexts.Files); err != nil {
+	return gui.Ask(AskOpts{
+		Title:               "continue",
+		Prompt:              gui.Tr.ConflictsResolved,
+		HandlersManageFocus: true,
+		HandleConfirm: func() error {
+			if err := gui.PushContext(gui.State.Contexts.Files); err != nil {
 				return err
 			}
 
 			return gui.genericMergeCommand("continue")
 		},
-		handleClose: func() error {
-			return gui.pushContext(gui.State.Contexts.Files)
+		HandleClose: func() error {
+			return gui.PushContext(gui.State.Contexts.Files)
 		},
 	})
 }

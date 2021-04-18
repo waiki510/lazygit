@@ -29,7 +29,7 @@ func (gui *Gui) handleCreateExtrasMenuPanel() error {
 func (gui *Gui) handleFocusCommandLog() error {
 	gui.ShowExtrasWindow = true
 	gui.State.Contexts.CommandLog.SetParentContext(gui.currentSideContext())
-	return gui.pushContext(gui.State.Contexts.CommandLog)
+	return gui.PushContext(gui.State.Contexts.CommandLog)
 }
 
 func (gui *Gui) scrollUpExtra() error {

@@ -42,10 +42,10 @@ func (gui *Gui) handleShowAllBranchLogs() error {
 	)
 	task := NewRunPtyTask(cmd)
 
-	return gui.refreshMainViews(refreshMainOpts{
-		main: &viewUpdateOpts{
-			title: "Log",
-			task:  task,
+	return gui.RefreshMainViews(RefreshMainOpts{
+		Main: &ViewUpdateOpts{
+			Title: "Log",
+			Task:  task,
 		},
 	})
 }
@@ -59,7 +59,7 @@ func (gui *Gui) dispatchSwitchToRepo(path string, reuse bool) error {
 
 	if err := os.Chdir(path); err != nil {
 		if os.IsNotExist(err) {
-			return gui.createErrorPanel(gui.Tr.ErrRepositoryMovedOrDeleted)
+			return gui.CreateErrorPanel(gui.Tr.ErrRepositoryMovedOrDeleted)
 		}
 		return err
 	}

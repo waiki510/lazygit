@@ -6,21 +6,21 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-type viewUpdateOpts struct {
-	title string
+type ViewUpdateOpts struct {
+	Title string
 
-	// awkwardly calling this noWrap because of how hard Go makes it to have
+	// awkwardly calling this NoWrap because of how hard Go makes it to have
 	// a boolean option that defaults to true
-	noWrap bool
+	NoWrap bool
 
-	highlight bool
+	Highlight bool
 
-	task updateTask
+	Task updateTask
 }
 
-type refreshMainOpts struct {
-	main      *viewUpdateOpts
-	secondary *viewUpdateOpts
+type RefreshMainOpts struct {
+	Main      *ViewUpdateOpts
+	Secondary *ViewUpdateOpts
 }
 
 // constants for updateTask's kind field
@@ -136,12 +136,12 @@ func (gui *Gui) runTaskForView(view *gocui.View, task updateTask) error {
 	return nil
 }
 
-func (gui *Gui) refreshMainView(opts *viewUpdateOpts, view *gocui.View) error {
-	view.Title = opts.title
-	view.Wrap = !opts.noWrap
-	view.Highlight = opts.highlight
+func (gui *Gui) refreshMainView(opts *ViewUpdateOpts, view *gocui.View) error {
+	view.Title = opts.Title
+	view.Wrap = !opts.NoWrap
+	view.Highlight = opts.Highlight
 
-	if err := gui.runTaskForView(view, opts.task); err != nil {
+	if err := gui.runTaskForView(view, opts.Task); err != nil {
 		gui.Log.Error(err)
 		return nil
 	}
@@ -149,20 +149,20 @@ func (gui *Gui) refreshMainView(opts *viewUpdateOpts, view *gocui.View) error {
 	return nil
 }
 
-func (gui *Gui) refreshMainViews(opts refreshMainOpts) error {
-	if opts.main != nil {
-		if err := gui.refreshMainView(opts.main, gui.Views.Main); err != nil {
+func (gui *Gui) RefreshMainViews(opts RefreshMainOpts) error {
+	if opts.Main != nil {
+		if err := gui.refreshMainView(opts.Main, gui.Views.Main); err != nil {
 			return err
 		}
 	}
 
-	if opts.secondary != nil {
-		if err := gui.refreshMainView(opts.secondary, gui.Views.Secondary); err != nil {
+	if opts.Secondary != nil {
+		if err := gui.refreshMainView(opts.Secondary, gui.Views.Secondary); err != nil {
 			return err
 		}
 	}
 
-	gui.splitMainPanel(opts.secondary != nil)
+	gui.splitMainPanel(opts.Secondary != nil)
 
 	return nil
 }

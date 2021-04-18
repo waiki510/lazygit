@@ -9,7 +9,7 @@ import (
 
 func (gui *Gui) resetToRef(ref string, strength string, span string, options oscommands.RunCommandOptions) error {
 	if err := gui.GitCommand.WithSpan(span).ResetToCommit(ref, strength, options); err != nil {
-		return gui.surfaceError(err)
+		return gui.SurfaceError(err)
 	}
 
 	gui.State.Panels.Commits.SelectedLineIdx = 0
@@ -17,18 +17,18 @@ func (gui *Gui) resetToRef(ref string, strength string, span string, options osc
 	// loading a heap of commits is slow so we limit them whenever doing a reset
 	gui.State.Panels.Commits.LimitCommits = true
 
-	if err := gui.pushContext(gui.State.Contexts.BranchCommits); err != nil {
+	if err := gui.PushContext(gui.State.Contexts.BranchCommits); err != nil {
 		return err
 	}
 
-	if err := gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{FILES, BRANCHES, REFLOG, COMMITS}}); err != nil {
+	if err := gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES, BRANCHES, REFLOG, COMMITS}}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (gui *Gui) createResetMenu(ref string) error {
+func (gui *Gui) CreateResetMenu(ref string) error {
 	strengths := []string{"soft", "mixed", "hard"}
 	menuItems := make([]*menuItem, len(strengths))
 	for i, strength := range strengths {

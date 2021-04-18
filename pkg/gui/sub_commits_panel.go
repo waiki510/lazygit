@@ -30,10 +30,10 @@ func (gui *Gui) handleSubCommitSelect() error {
 		task = NewRunPtyTask(cmd)
 	}
 
-	return gui.refreshMainViews(refreshMainOpts{
-		main: &viewUpdateOpts{
-			title: "Commit",
-			task:  task,
+	return gui.RefreshMainViews(RefreshMainOpts{
+		Main: &ViewUpdateOpts{
+			Title: "Commit",
+			Task:  task,
 		},
 	})
 }
@@ -44,11 +44,11 @@ func (gui *Gui) handleCheckoutSubCommit() error {
 		return nil
 	}
 
-	err := gui.ask(askOpts{
-		title:  gui.Tr.LcCheckoutCommit,
-		prompt: gui.Tr.SureCheckoutThisCommit,
-		handleConfirm: func() error {
-			return gui.handleCheckoutRef(commit.Sha, handleCheckoutRefOptions{span: gui.Tr.Spans.CheckoutCommit})
+	err := gui.Ask(AskOpts{
+		Title:  gui.Tr.LcCheckoutCommit,
+		Prompt: gui.Tr.SureCheckoutThisCommit,
+		HandleConfirm: func() error {
+			return gui.HandleCheckoutRef(commit.Sha, HandleCheckoutRefOptions{Span: gui.Tr.Spans.CheckoutCommit})
 		},
 	})
 	if err != nil {
@@ -63,7 +63,7 @@ func (gui *Gui) handleCheckoutSubCommit() error {
 func (gui *Gui) handleCreateSubCommitResetMenu() error {
 	commit := gui.getSelectedSubCommit()
 
-	return gui.createResetMenu(commit.Sha)
+	return gui.CreateResetMenu(commit.Sha)
 }
 
 func (gui *Gui) handleViewSubCommitFiles() error {
@@ -96,7 +96,7 @@ func (gui *Gui) switchToSubCommitsContext(refName string) error {
 	gui.State.Panels.SubCommits.SelectedLineIdx = 0
 	gui.State.Contexts.SubCommits.SetParentContext(gui.currentSideListContext())
 
-	return gui.pushContext(gui.State.Contexts.SubCommits)
+	return gui.PushContext(gui.State.Contexts.SubCommits)
 }
 
 func (gui *Gui) handleSwitchToSubCommits() error {

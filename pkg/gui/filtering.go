@@ -2,10 +2,10 @@ package gui
 
 func (gui *Gui) validateNotInFilterMode() (bool, error) {
 	if gui.State.Modes.Filtering.Active() {
-		err := gui.ask(askOpts{
-			title:         gui.Tr.MustExitFilterModeTitle,
-			prompt:        gui.Tr.MustExitFilterModePrompt,
-			handleConfirm: gui.exitFilterMode,
+		err := gui.Ask(AskOpts{
+			Title:         gui.Tr.MustExitFilterModeTitle,
+			Prompt:        gui.Tr.MustExitFilterModePrompt,
+			HandleConfirm: gui.exitFilterMode,
 		})
 
 		return false, err
@@ -23,7 +23,7 @@ func (gui *Gui) clearFiltering() error {
 		gui.State.ScreenMode = SCREEN_NORMAL
 	}
 
-	return gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{COMMITS}})
+	return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{COMMITS}})
 }
 
 func (gui *Gui) setFiltering(path string) error {
@@ -32,11 +32,11 @@ func (gui *Gui) setFiltering(path string) error {
 		gui.State.ScreenMode = SCREEN_HALF
 	}
 
-	if err := gui.pushContext(gui.State.Contexts.BranchCommits); err != nil {
+	if err := gui.PushContext(gui.State.Contexts.BranchCommits); err != nil {
 		return err
 	}
 
-	return gui.refreshSidePanels(refreshOptions{scope: []RefreshableView{COMMITS}, then: func() {
+	return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{COMMITS}, Then: func() {
 		gui.State.Contexts.BranchCommits.GetPanelState().SetSelectedLineIdx(0)
 	}})
 }

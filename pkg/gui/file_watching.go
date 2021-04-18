@@ -117,7 +117,7 @@ func (gui *Gui) watchFilesForChanges() {
 				}
 				// only refresh if we're not already
 				if !gui.State.IsRefreshingFiles {
-					_ = gui.refreshSidePanels(refreshOptions{mode: ASYNC, scope: []RefreshableView{FILES}})
+					_ = gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC, Scope: []RefreshableView{FILES}})
 				}
 
 			// watch for errors

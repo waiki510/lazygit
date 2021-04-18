@@ -136,14 +136,14 @@ func (gui *Gui) tagsListContext() *ListContext {
 		},
 		GetItemsLength:             func() int { return len(gui.State.Tags) },
 		GetPanelState:              func() IListPanelState { return gui.State.Panels.Tags },
-		OnFocus:                    gui.handleTagSelect,
+		OnFocus:                    NewTagsController(gui).HandleSelect,
 		Gui:                        gui,
 		ResetMainViewOriginOnFocus: true,
 		GetDisplayStrings: func() [][]string {
 			return presentation.GetTagListDisplayStrings(gui.State.Tags, gui.State.Modes.Diffing.Ref)
 		},
 		SelectedItem: func() (ListItem, bool) {
-			item := gui.getSelectedTag()
+			item := gui.GetSelectedTag()
 			return item, item != nil
 		},
 	}

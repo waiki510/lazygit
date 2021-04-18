@@ -315,7 +315,7 @@ func (gui *Gui) onInitialViewsCreationForRepo() error {
 	}
 
 	initialContext := gui.currentSideContext()
-	if err := gui.pushContext(initialContext); err != nil {
+	if err := gui.PushContext(initialContext); err != nil {
 		return err
 	}
 

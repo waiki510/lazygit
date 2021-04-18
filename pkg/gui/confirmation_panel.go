@@ -31,44 +31,44 @@ type createPopupPanelOpts struct {
 	findSuggestionsFunc func(string) []*types.Suggestion
 }
 
-type askOpts struct {
-	title               string
-	prompt              string
-	handleConfirm       func() error
-	handleClose         func() error
-	handlersManageFocus bool
-	findSuggestionsFunc func(string) []*types.Suggestion
+type AskOpts struct {
+	Title               string
+	Prompt              string
+	HandleConfirm       func() error
+	HandleClose         func() error
+	HandlersManageFocus bool
+	FindSuggestionsFunc func(string) []*types.Suggestion
 }
 
-type promptOpts struct {
-	title               string
-	initialContent      string
-	handleConfirm       func(string) error
-	findSuggestionsFunc func(string) []*types.Suggestion
+type PromptOpts struct {
+	Title               string
+	InitialContent      string
+	HandleConfirm       func(string) error
+	FindSuggestionsFunc func(string) []*types.Suggestion
 }
 
-func (gui *Gui) ask(opts askOpts) error {
+func (gui *Gui) Ask(opts AskOpts) error {
 	return gui.createPopupPanel(createPopupPanelOpts{
-		title:               opts.title,
-		prompt:              opts.prompt,
-		handleConfirm:       opts.handleConfirm,
-		handleClose:         opts.handleClose,
-		handlersManageFocus: opts.handlersManageFocus,
-		findSuggestionsFunc: opts.findSuggestionsFunc,
+		title:               opts.Title,
+		prompt:              opts.Prompt,
+		handleConfirm:       opts.HandleConfirm,
+		handleClose:         opts.HandleClose,
+		handlersManageFocus: opts.HandlersManageFocus,
+		findSuggestionsFunc: opts.FindSuggestionsFunc,
 	})
 }
 
-func (gui *Gui) prompt(opts promptOpts) error {
+func (gui *Gui) Prompt(opts PromptOpts) error {
 	return gui.createPopupPanel(createPopupPanelOpts{
-		title:               opts.title,
-		prompt:              opts.initialContent,
+		title:               opts.Title,
+		prompt:              opts.InitialContent,
 		editable:            true,
-		handleConfirmPrompt: opts.handleConfirm,
-		findSuggestionsFunc: opts.findSuggestionsFunc,
+		handleConfirmPrompt: opts.HandleConfirm,
+		findSuggestionsFunc: opts.FindSuggestionsFunc,
 	})
 }
 
-func (gui *Gui) createLoaderPanel(prompt string) error {
+func (gui *Gui) CreateLoaderPanel(prompt string) error {
 	return gui.createPopupPanel(createPopupPanelOpts{
 		prompt:    prompt,
 		hasLoader: true,
@@ -95,7 +95,7 @@ func (gui *Gui) wrappedPromptConfirmationFunction(handlersManageFocus bool, func
 	return func() error {
 		if function != nil {
 			if err := function(getResponse()); err != nil {
-				return gui.surfaceError(err)
+				return gui.SurfaceError(err)
 			}
 		}
 
@@ -199,7 +199,7 @@ func (gui *Gui) prepareConfirmationPanel(title, prompt string, hasLoader bool, f
 	}
 
 	gui.g.Update(func(g *gocui.Gui) error {
-		return gui.pushContext(gui.State.Contexts.Confirmation)
+		return gui.PushContext(gui.State.Contexts.Confirmation)
 	})
 	return nil
 }
@@ -315,23 +315,23 @@ func (gui *Gui) wrappedHandler(f func() error) func(g *gocui.Gui, v *gocui.View)
 	}
 }
 
-func (gui *Gui) createErrorPanel(message string) error {
+func (gui *Gui) CreateErrorPanel(message string) error {
 	colorFunction := color.New(color.FgRed).SprintFunc()
 	coloredMessage := colorFunction(strings.TrimSpace(message))
-	if err := gui.refreshSidePanels(refreshOptions{mode: ASYNC}); err != nil {
+	if err := gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC}); err != nil {
 		return err
 	}
 
-	return gui.ask(askOpts{
-		title:  gui.Tr.Error,
-		prompt: coloredMessage,
+	return gui.Ask(AskOpts{
+		Title:  gui.Tr.Error,
+		Prompt: coloredMessage,
 	})
 }
 
-func (gui *Gui) surfaceError(err error) error {
+func (gui *Gui) SurfaceError(err error) error {
 	if err == nil {
 		return nil
 	}
 
-	return gui.createErrorPanel(err.Error())
+	return gui.CreateErrorPanel(err.Error())
 }

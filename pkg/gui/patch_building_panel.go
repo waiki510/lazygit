@@ -108,22 +108,22 @@ func (gui *Gui) handleEscapePatchBuildingPanel() error {
 	}
 
 	if gui.currentContext().GetKey() == gui.State.Contexts.PatchBuilding.GetKey() {
-		return gui.pushContext(gui.State.Contexts.CommitFiles)
+		return gui.PushContext(gui.State.Contexts.CommitFiles)
 	} else {
 		// need to re-focus in case the secondary view should now be hidden
 		return gui.currentContext().HandleFocus()
 	}
 }
 
-func (gui *Gui) secondaryPatchPanelUpdateOpts() *viewUpdateOpts {
+func (gui *Gui) secondaryPatchPanelUpdateOpts() *ViewUpdateOpts {
 	if gui.GitCommand.PatchManager.Active() {
 		patch := gui.GitCommand.PatchManager.RenderAggregatedPatchColored(false)
 
-		return &viewUpdateOpts{
-			title:     "Custom Patch",
-			noWrap:    true,
-			highlight: true,
-			task:      NewRenderStringWithoutScrollTask(patch),
+		return &ViewUpdateOpts{
+			Title:     "Custom Patch",
+			NoWrap:    true,
+			Highlight: true,
+			Task:      NewRenderStringWithoutScrollTask(patch),
 		}
 	}
 
