@@ -6,7 +6,7 @@ import (
 	"github.com/fatih/color"
 )
 
-func (gui *Gui) handleCreateResetMenu() error {
+func (gui *FilesController) HandleCreateResetMenu() error {
 	red := color.New(color.FgRed)
 
 	nukeStr := "reset --hard HEAD && git clean -fd"

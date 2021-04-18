@@ -208,6 +208,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 
 	tagsController := NewTagsController(gui)
 	filesController := NewFilesController(gui)
+	globalController := NewGlobalController(gui)
 
 	bindings := []*Binding{
 		{
@@ -285,18 +286,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Handler:     gui.handleCreatePatchOptionsMenu,
 			Description: gui.Tr.ViewPatchOptions,
 			OpensMenu:   true,
-		},
-		{
-			ViewName:    "",
-			Key:         gui.getKey(config.Universal.PushFiles),
-			Handler:     gui.pushFiles,
-			Description: gui.Tr.LcPush,
-		},
-		{
-			ViewName:    "",
-			Key:         gui.getKey(config.Universal.PullFiles),
-			Handler:     gui.handlePullFiles,
-			Description: gui.Tr.LcPull,
 		},
 		{
 			ViewName:    "",
@@ -378,6 +367,18 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.LcAllBranchesLogGraph,
 		},
 		{
+			ViewName:    "",
+			Key:         gui.getKey(config.Universal.PushFiles),
+			Handler:     globalController.HandlePushFiles,
+			Description: gui.Tr.LcPush,
+		},
+		{
+			ViewName:    "",
+			Key:         gui.getKey(config.Universal.PullFiles),
+			Handler:     globalController.HandlePullFiles,
+			Description: gui.Tr.LcPull,
+		},
+		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.CommitChanges),
@@ -452,14 +453,14 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.StashAllChanges),
-			Handler:     gui.HandleStashChanges,
+			Handler:     filesController.HandleStashChanges,
 			Description: gui.Tr.LcStashAllChanges,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.ViewStashOptions),
-			Handler:     gui.HandleCreateStashMenu,
+			Handler:     filesController.HandleCreateStashMenu,
 			Description: gui.Tr.LcViewStashOptions,
 			OpensMenu:   true,
 		},
@@ -474,7 +475,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.ViewResetOptions),
-			Handler:     gui.handleCreateResetMenu,
+			Handler:     filesController.HandleCreateResetMenu,
 			Description: gui.Tr.LcViewResetOptions,
 			OpensMenu:   true,
 		},
@@ -489,27 +490,21 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.Fetch),
-			Handler:     gui.handleGitFetch,
+			Handler:     filesController.HandleGitFetch,
 			Description: gui.Tr.LcFetch,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     gui.handleCopySelectedSideContextItemToClipboard,
+			Handler:     filesController.HandleCopyPathToClipboard,
 			Description: gui.Tr.LcCopyFileNameToClipboard,
-		},
-		{
-			ViewName:    "",
-			Key:         gui.getKey(config.Universal.ExecuteCustomCommand),
-			Handler:     gui.HandleCustomCommand,
-			Description: gui.Tr.LcExecuteCustomCommand,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Commits.ViewResetOptions),
-			Handler:     gui.HandleCreateResetToUpstreamMenu,
+			Handler:     filesController.HandleCreateResetToUpstreamMenu,
 			Description: gui.Tr.LcViewResetToUpstreamOptions,
 			OpensMenu:   true,
 		},
@@ -517,15 +512,21 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.ToggleTreeView),
-			Handler:     gui.HandleToggleFileTreeView,
+			Handler:     filesController.HandleToggleFileTreeView,
 			Description: gui.Tr.LcToggleTreeView,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.OpenMergeTool),
-			Handler:     gui.HandleOpenMergeTool,
+			Handler:     filesController.HandleOpenMergeTool,
 			Description: gui.Tr.LcOpenMergeTool,
+		},
+		{
+			ViewName:    "",
+			Key:         gui.getKey(config.Universal.ExecuteCustomCommand),
+			Handler:     globalController.HandleCustomCommand,
+			Description: gui.Tr.LcExecuteCustomCommand,
 		},
 		{
 			ViewName:    "branches",
@@ -624,7 +625,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "branches",
 			Contexts:    []string{string(LOCAL_BRANCHES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     gui.handleCopySelectedSideContextItemToClipboard,
+			Handler:     gui.HandleCopySelectedSideContextItemToClipboard,
 			Description: gui.Tr.LcCopyBranchNameToClipboard,
 		},
 		{
@@ -815,7 +816,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "commits",
 			Contexts:    []string{string(BRANCH_COMMITS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     gui.handleCopySelectedSideContextItemToClipboard,
+			Handler:     gui.HandleCopySelectedSideContextItemToClipboard,
 			Description: gui.Tr.LcCopyCommitShaToClipboard,
 		},
 		{
@@ -922,7 +923,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "commits",
 			Contexts:    []string{string(REFLOG_COMMITS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     gui.handleCopySelectedSideContextItemToClipboard,
+			Handler:     gui.HandleCopySelectedSideContextItemToClipboard,
 			Description: gui.Tr.LcCopyCommitShaToClipboard,
 		},
 		{
@@ -979,7 +980,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "branches",
 			Contexts:    []string{string(SUB_COMMITS_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     gui.handleCopySelectedSideContextItemToClipboard,
+			Handler:     gui.HandleCopySelectedSideContextItemToClipboard,
 			Description: gui.Tr.LcCopyCommitShaToClipboard,
 		},
 		{
@@ -1051,7 +1052,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		{
 			ViewName:    "commitFiles",
 			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     gui.handleCopySelectedSideContextItemToClipboard,
+			Handler:     gui.HandleCopySelectedSideContextItemToClipboard,
 			Description: gui.Tr.LcCopyCommitFileNameToClipboard,
 		},
 		{
@@ -1432,7 +1433,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "main",
 			Contexts:    []string{string(MAIN_MERGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.OpenMergeTool),
-			Handler:     gui.HandleOpenMergeTool,
+			Handler:     filesController.HandleOpenMergeTool,
 			Description: gui.Tr.LcOpenMergeTool,
 		},
 		{
@@ -1661,7 +1662,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(SUBMODULES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     gui.handleCopySelectedSideContextItemToClipboard,
+			Handler:     gui.HandleCopySelectedSideContextItemToClipboard,
 			Description: gui.Tr.LcCopySubmoduleNameToClipboard,
 		},
 		{

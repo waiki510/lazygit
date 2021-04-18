@@ -179,7 +179,7 @@ func (gui *Gui) deactivateContext(c Context) error {
 // postRefreshUpdate is to be called on a context after the state that it depends on has been refreshed
 // if the context's view is set to another context we do nothing.
 // if the context's view is the current view we trigger a focus; re-selecting the current item.
-func (gui *Gui) postRefreshUpdate(c Context) error {
+func (gui *Gui) PostRefreshUpdate(c Context) error {
 	v, err := gui.g.View(c.GetViewName())
 	if err != nil {
 		return nil

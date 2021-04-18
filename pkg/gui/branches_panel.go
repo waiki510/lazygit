@@ -70,7 +70,7 @@ func (gui *Gui) refreshBranches() {
 	}
 	gui.State.Branches = builder.Build()
 
-	if err := gui.postRefreshUpdate(gui.State.Contexts.Branches); err != nil {
+	if err := gui.PostRefreshUpdate(gui.State.Contexts.Branches); err != nil {
 		gui.Log.Error(err)
 	}
 
@@ -115,18 +115,6 @@ func (gui *Gui) handleCopyPullRequestURLPress() error {
 
 	gui.raiseToast(gui.Tr.PullRequestURLCopiedToClipboard)
 
-	return nil
-}
-
-func (gui *Gui) handleGitFetch() error {
-	if err := gui.CreateLoaderPanel(gui.Tr.FetchWait); err != nil {
-		return err
-	}
-	go utils.Safe(func() {
-		err := gui.fetch(true, "Fetch")
-		gui.HandleCredentialsPopup(err)
-		_ = gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC})
-	})
 	return nil
 }
 
@@ -414,7 +402,7 @@ func (gui *Gui) handleFastForward() error {
 		_ = gui.CreateLoaderPanel(message)
 
 		if gui.State.Panels.Branches.SelectedLineIdx == 0 {
-			_ = gui.pullWithMode("ff-only", PullFilesOptions{span: span})
+			_ = gui.PullWithMode("ff-only", PullFilesOptions{span: span})
 		} else {
 			err := gui.GitCommand.WithSpan(span).FastForward(branch.Name, remoteName, remoteBranchName, gui.PromptUserForCredential)
 			gui.HandleCredentialsPopup(err)
@@ -481,7 +469,7 @@ func (gui *Gui) handleRenameBranch() error {
 	})
 }
 
-func (gui *Gui) currentBranch() *models.Branch {
+func (gui *Gui) GetCurrentBranch() *models.Branch {
 	if len(gui.State.Branches) == 0 {
 		return nil
 	}

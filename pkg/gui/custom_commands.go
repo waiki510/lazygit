@@ -42,7 +42,7 @@ func (gui *Gui) resolveTemplate(templateStr string, promptResponses []string) (s
 		SelectedCommitFile:     gui.getSelectedCommitFile(),
 		SelectedCommitFilePath: gui.getSelectedCommitFilePath(),
 		SelectedSubCommit:      gui.getSelectedSubCommit(),
-		CheckedOutBranch:       gui.currentBranch(),
+		CheckedOutBranch:       gui.GetCurrentBranch(),
 		PromptResponses:        promptResponses,
 	}
 

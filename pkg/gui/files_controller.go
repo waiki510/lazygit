@@ -14,6 +14,7 @@ import (
 
 type IGuiBranches interface {
 	GetCheckedOutBranch() *models.Branch
+	GetCurrentBranch() *models.Branch
 }
 
 type IGuiCommitMessage interface {
@@ -21,13 +22,23 @@ type IGuiCommitMessage interface {
 	WithGpgHandling(string, string, func() error) error
 }
 
+type IGuiFetching interface {
+	Fetch(bool, string) error
+}
+
+type IGuiSideContext interface {
+	HandleCopySelectedSideContextItemToClipboard() error
+}
+
 type IGuiFileChanges interface {
 	GetSelectedFile() *models.File
 	GetSelectedFileNode() *filetree.FileNode
+	GetSelectedPath() string
 	EnterFile(forceSecondaryFocused bool, selectedLineIdx int) error
-	HandleSwitchToMerge() error
+	SwitchToMerge() error
 	SelectFile(alreadySelected bool) error
 	StagedFiles() []*models.File
+	TrackedFiles() []*models.File
 	RefreshFilesAndSubmodules() error
 }
 
@@ -44,6 +55,8 @@ type IGuiFilesController interface {
 	IGuiBranches
 	IGuiCommitMessage
 	IGuiFiles
+	IGuiFetching
+	IGuiSideContext
 }
 
 type FilesController struct {
@@ -54,6 +67,10 @@ type FilesController struct {
 func NewFilesController(gui *Gui) *FilesController {
 	return &FilesController{IGuiFilesController: gui, GuiCore: gui.GuiCore}
 }
+
+// func (gui *FilesController) getKeyBindings() []*Binding {
+
+// }
 
 func (gui *FilesController) HandleEnterFile() error {
 	return gui.EnterFile(false, -1)
@@ -69,7 +86,7 @@ func (gui *FilesController) HandleFilePress() error {
 		file := node.File
 
 		if file.HasInlineMergeConflicts {
-			return gui.HandleSwitchToMerge()
+			return gui.SwitchToMerge()
 		}
 
 		if file.HasUnstagedChanges {
@@ -357,21 +374,6 @@ func (gui *FilesController) HandleCreateResetToUpstreamMenu() error {
 	return gui.CreateResetMenu("@{upstream}")
 }
 
-func (gui *FilesController) HandleToggleDirCollapsed() error {
-	node := gui.GetSelectedFileNode()
-	if node == nil {
-		return nil
-	}
-
-	gui.State.FileManager.ToggleCollapsed(node.GetPath())
-
-	if err := gui.postRefreshUpdate(gui.State.Contexts.Files); err != nil {
-		gui.Log.Error(err)
-	}
-
-	return nil
-}
-
 func (gui *FilesController) HandleToggleFileTreeView() error {
 	// get path of currently selected file
 	path := gui.GetSelectedPath()
@@ -383,7 +385,7 @@ func (gui *FilesController) HandleToggleFileTreeView() error {
 		gui.State.FileManager.ExpandToPath(path)
 		index, found := gui.State.FileManager.GetIndexForPath(path)
 		if found {
-			gui.filesListContext().GetPanelState().SetSelectedLineIdx(index)
+			gui.State.Contexts.Files.GetPanelState().SetSelectedLineIdx(index)
 		}
 	}
 
@@ -431,7 +433,7 @@ func (gui *FilesController) HandleCreateStashMenu() error {
 }
 
 func (gui *FilesController) handleStashSave(stashFunc func(message string) error) error {
-	if len(gui.trackedFiles()) == 0 && len(gui.StagedFiles()) == 0 {
+	if len(gui.TrackedFiles()) == 0 && len(gui.StagedFiles()) == 0 {
 		return gui.CreateErrorPanel(gui.Tr.NoTrackedStagedFilesStash)
 	}
 
@@ -444,4 +446,20 @@ func (gui *FilesController) handleStashSave(stashFunc func(message string) error
 			return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{STASH, FILES}})
 		},
 	})
+}
+
+func (gui *FilesController) HandleGitFetch() error {
+	if err := gui.CreateLoaderPanel(gui.Tr.FetchWait); err != nil {
+		return err
+	}
+	go utils.Safe(func() {
+		err := gui.Fetch(true, "Fetch")
+		gui.HandleCredentialsPopup(err)
+		_ = gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC})
+	})
+	return nil
+}
+
+func (gui *FilesController) HandleCopyPathToClipboard() error {
+	return gui.HandleCopySelectedSideContextItemToClipboard()
 }

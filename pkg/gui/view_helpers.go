@@ -341,7 +341,7 @@ func (gui *Gui) isPopupPanel(viewName string) bool {
 	return viewName == "commitMessage" || viewName == "credentials" || viewName == "confirmation" || viewName == "menu"
 }
 
-func (gui *Gui) popupPanelFocused() bool {
+func (gui *Gui) PopupPanelFocused() bool {
 	return gui.isPopupPanel(gui.currentViewName())
 }
 

@@ -79,7 +79,7 @@ func (gui *Gui) refreshReflogCommits() error {
 		state.FilteredReflogCommits = state.ReflogCommits
 	}
 
-	return gui.postRefreshUpdate(gui.State.Contexts.ReflogCommits)
+	return gui.PostRefreshUpdate(gui.State.Contexts.ReflogCommits)
 }
 
 func (gui *Gui) handleCheckoutReflogCommit() error {

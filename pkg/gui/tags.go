@@ -11,7 +11,7 @@ func (gui *Gui) refreshTags() error {
 
 	gui.State.Tags = tags
 
-	return gui.postRefreshUpdate(gui.State.Contexts.Tags)
+	return gui.PostRefreshUpdate(gui.State.Contexts.Tags)
 }
 
 func (gui *Gui) GetSelectedTag() *models.Tag {

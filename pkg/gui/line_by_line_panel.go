@@ -178,7 +178,7 @@ func (gui *Gui) LBLSelectLine(newSelectedLineIdx int, state *lBlPanelState) erro
 
 func (gui *Gui) handleLBLMouseDown() error {
 	return gui.withLBLActiveCheck(func(state *lBlPanelState) error {
-		if gui.popupPanelFocused() {
+		if gui.PopupPanelFocused() {
 			return nil
 		}
 
@@ -194,7 +194,7 @@ func (gui *Gui) handleLBLMouseDown() error {
 
 func (gui *Gui) handleMouseDrag() error {
 	return gui.withLBLActiveCheck(func(state *lBlPanelState) error {
-		if gui.popupPanelFocused() {
+		if gui.PopupPanelFocused() {
 			return nil
 		}
 

@@ -176,7 +176,7 @@ func (gui *Gui) handleHardResetWithAutoStash(commitSha string, options handleHar
 	}
 
 	// if we have any modified tracked files we need to ask the user if they want us to stash for them
-	dirtyWorkingTree := len(gui.trackedFiles()) > 0 || len(gui.StagedFiles()) > 0
+	dirtyWorkingTree := len(gui.TrackedFiles()) > 0 || len(gui.StagedFiles()) > 0
 	if dirtyWorkingTree {
 		// offer to autostash changes
 		return gui.Ask(AskOpts{

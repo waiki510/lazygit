@@ -157,7 +157,7 @@ func (gui *Gui) handleRefresh() error {
 }
 
 func (gui *Gui) handleMouseDownMain() error {
-	if gui.popupPanelFocused() {
+	if gui.PopupPanelFocused() {
 		return nil
 	}
 
@@ -175,7 +175,7 @@ func (gui *Gui) handleMouseDownMain() error {
 }
 
 func (gui *Gui) handleMouseDownSecondary() error {
-	if gui.popupPanelFocused() {
+	if gui.PopupPanelFocused() {
 		return nil
 	}
 
@@ -187,7 +187,7 @@ func (gui *Gui) handleMouseDownSecondary() error {
 	return nil
 }
 
-func (gui *Gui) fetch(canPromptForCredentials bool, span string) (err error) {
+func (gui *Gui) Fetch(canPromptForCredentials bool, span string) (err error) {
 	gui.Mutexes.FetchMutex.Lock()
 	defer gui.Mutexes.FetchMutex.Unlock()
 
@@ -207,7 +207,7 @@ func (gui *Gui) fetch(canPromptForCredentials bool, span string) (err error) {
 	return err
 }
 
-func (gui *Gui) handleCopySelectedSideContextItemToClipboard() error {
+func (gui *Gui) HandleCopySelectedSideContextItemToClipboard() error {
 	// important to note that this assumes we've selected an item in a side context
 	itemId := gui.getSideContextSelectedItemId()
 

@@ -2,12 +2,10 @@ package gui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazygit/pkg/commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
-	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
 	"github.com/jesseduffield/lazygit/pkg/gui/filetree"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 )
@@ -112,7 +110,7 @@ func (gui *Gui) RefreshFilesAndSubmodules() error {
 	}
 
 	gui.g.Update(func(g *gocui.Gui) error {
-		if err := gui.postRefreshUpdate(gui.State.Contexts.Submodules); err != nil {
+		if err := gui.PostRefreshUpdate(gui.State.Contexts.Submodules); err != nil {
 			gui.Log.Error(err)
 		}
 
@@ -150,7 +148,7 @@ func (gui *Gui) StagedFiles() []*models.File {
 	return result
 }
 
-func (gui *Gui) trackedFiles() []*models.File {
+func (gui *Gui) TrackedFiles() []*models.File {
 	files := gui.State.FileManager.GetAllFiles()
 	result := make([]*models.File, 0, len(files))
 	for _, file := range files {
@@ -168,7 +166,7 @@ func (gui *Gui) EnterFile(forceSecondaryFocused bool, selectedLineIdx int) error
 	}
 
 	if node.File == nil {
-		return gui.HandleToggleDirCollapsed()
+		return gui.toggleDirCollapsed()
 	}
 
 	file := node.File
@@ -180,7 +178,7 @@ func (gui *Gui) EnterFile(forceSecondaryFocused bool, selectedLineIdx int) error
 	}
 
 	if file.HasInlineMergeConflicts {
-		return gui.HandleSwitchToMerge()
+		return gui.SwitchToMerge()
 	}
 	if file.HasMergeConflicts {
 		return gui.CreateErrorPanel(gui.Tr.FileStagingRequirements)
@@ -190,25 +188,23 @@ func (gui *Gui) EnterFile(forceSecondaryFocused bool, selectedLineIdx int) error
 	return gui.handleRefreshStagingPanel(forceSecondaryFocused, selectedLineIdx) // TODO: check if this is broken, try moving into context code
 }
 
-func (gui *Gui) focusAndSelectFile() error {
-	return gui.SelectFile(false)
+func (gui *Gui) toggleDirCollapsed() error {
+	node := gui.GetSelectedFileNode()
+	if node == nil {
+		return nil
+	}
+
+	gui.State.FileManager.ToggleCollapsed(node.GetPath())
+
+	if err := gui.PostRefreshUpdate(gui.State.Contexts.Files); err != nil {
+		gui.Log.Error(err)
+	}
+
+	return nil
 }
 
-func (gui *Gui) promptToStageAllAndRetry(retry func() error) error {
-	return gui.Ask(AskOpts{
-		Title:  gui.Tr.NoFilesStagedTitle,
-		Prompt: gui.Tr.NoFilesStagedPrompt,
-		HandleConfirm: func() error {
-			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.StageAllFiles).StageAll(); err != nil {
-				return gui.SurfaceError(err)
-			}
-			if err := gui.RefreshFilesAndSubmodules(); err != nil {
-				return gui.SurfaceError(err)
-			}
-
-			return retry()
-		},
-	})
+func (gui *Gui) focusAndSelectFile() error {
+	return gui.SelectFile(false)
 }
 
 func (gui *Gui) EditFile(filename string) error {
@@ -315,71 +311,13 @@ func (gui *Gui) findNewSelectedIdx(prevNodes []*filetree.FileNode, currNodes []*
 	return -1
 }
 
-func (gui *Gui) handlePullFiles() error {
-	if gui.popupPanelFocused() {
-		return nil
-	}
-
-	span := gui.Tr.Spans.Pull
-
-	currentBranch := gui.currentBranch()
-	if currentBranch == nil {
-		// need to wait for branches to refresh
-		return nil
-	}
-
-	// if we have no upstream branch we need to set that first
-	if currentBranch.Pullables == "?" {
-		// see if we have this branch in our config with an upstream
-		conf, err := gui.GitCommand.Repo.Config()
-		if err != nil {
-			return gui.SurfaceError(err)
-		}
-		for branchName, branch := range conf.Branches {
-			if branchName == currentBranch.Name {
-				return gui.pullFiles(PullFilesOptions{RemoteName: branch.Remote, BranchName: branch.Name, span: span})
-			}
-		}
-
-		return gui.Prompt(PromptOpts{
-			Title:          gui.Tr.EnterUpstream,
-			InitialContent: "origin/" + currentBranch.Name,
-			HandleConfirm: func(upstream string) error {
-				if err := gui.GitCommand.SetUpstreamBranch(upstream); err != nil {
-					errorMessage := err.Error()
-					if strings.Contains(errorMessage, "does not exist") {
-						errorMessage = fmt.Sprintf("upstream branch %s not found.\nIf you expect it to exist, you should fetch (with 'f').\nOtherwise, you should push (with 'shift+P')", upstream)
-					}
-					return gui.CreateErrorPanel(errorMessage)
-				}
-				return gui.pullFiles(PullFilesOptions{span: span})
-			},
-		})
-	}
-
-	return gui.pullFiles(PullFilesOptions{span: span})
-}
-
 type PullFilesOptions struct {
 	RemoteName string
 	BranchName string
 	span       string
 }
 
-func (gui *Gui) pullFiles(opts PullFilesOptions) error {
-	if err := gui.CreateLoaderPanel(gui.Tr.PullWait); err != nil {
-		return err
-	}
-
-	mode := gui.Config.GetUserConfig().Git.Pull.Mode
-
-	// TODO: this doesn't look like a good idea. Why the goroutine?
-	go utils.Safe(func() { _ = gui.pullWithMode(mode, opts) })
-
-	return nil
-}
-
-func (gui *Gui) pullWithMode(mode string, opts PullFilesOptions) error {
+func (gui *Gui) PullWithMode(mode string, opts PullFilesOptions) error {
 	gui.Mutexes.FetchMutex.Lock()
 	defer gui.Mutexes.FetchMutex.Unlock()
 
@@ -412,88 +350,7 @@ func (gui *Gui) pullWithMode(mode string, opts PullFilesOptions) error {
 	}
 }
 
-func (gui *Gui) pushWithForceFlag(force bool, upstream string, args string) error {
-	if err := gui.CreateLoaderPanel(gui.Tr.PushWait); err != nil {
-		return err
-	}
-	go utils.Safe(func() {
-		branchName := gui.GetCheckedOutBranch().Name
-		err := gui.GitCommand.WithSpan(gui.Tr.Spans.Push).Push(branchName, force, upstream, args, gui.PromptUserForCredential)
-		if err != nil && !force && strings.Contains(err.Error(), "Updates were rejected") {
-			forcePushDisabled := gui.Config.GetUserConfig().Git.DisableForcePushing
-			if forcePushDisabled {
-				_ = gui.CreateErrorPanel(gui.Tr.UpdatesRejectedAndForcePushDisabled)
-				return
-			}
-			_ = gui.Ask(AskOpts{
-				Title:  gui.Tr.ForcePush,
-				Prompt: gui.Tr.ForcePushPrompt,
-				HandleConfirm: func() error {
-					return gui.pushWithForceFlag(true, upstream, args)
-				},
-			})
-			return
-		}
-		gui.HandleCredentialsPopup(err)
-		_ = gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC})
-	})
-	return nil
-}
-
-func (gui *Gui) pushFiles() error {
-	if gui.popupPanelFocused() {
-		return nil
-	}
-
-	// if we have pullables we'll ask if the user wants to force push
-	currentBranch := gui.currentBranch()
-	if currentBranch == nil {
-		// need to wait for branches to refresh
-		return nil
-	}
-
-	if currentBranch.Pullables == "?" {
-		// see if we have this branch in our config with an upstream
-		conf, err := gui.GitCommand.Repo.Config()
-		if err != nil {
-			return gui.SurfaceError(err)
-		}
-		for branchName, branch := range conf.Branches {
-			if branchName == currentBranch.Name {
-				return gui.pushWithForceFlag(false, "", fmt.Sprintf("%s %s", branch.Remote, branchName))
-			}
-		}
-
-		if gui.GitCommand.PushToCurrent {
-			return gui.pushWithForceFlag(false, "", "--set-upstream")
-		} else {
-			return gui.Prompt(PromptOpts{
-				Title:          gui.Tr.EnterUpstream,
-				InitialContent: "origin " + currentBranch.Name,
-				HandleConfirm: func(response string) error {
-					return gui.pushWithForceFlag(false, response, "")
-				},
-			})
-		}
-	} else if currentBranch.Pullables == "0" {
-		return gui.pushWithForceFlag(false, "", "")
-	}
-
-	forcePushDisabled := gui.Config.GetUserConfig().Git.DisableForcePushing
-	if forcePushDisabled {
-		return gui.CreateErrorPanel(gui.Tr.ForcePushDisabled)
-	}
-
-	return gui.Ask(AskOpts{
-		Title:  gui.Tr.ForcePush,
-		Prompt: gui.Tr.ForcePushPrompt,
-		HandleConfirm: func() error {
-			return gui.pushWithForceFlag(true, "", "")
-		},
-	})
-}
-
-func (gui *Gui) HandleSwitchToMerge() error {
+func (gui *Gui) SwitchToMerge() error {
 	file := gui.GetSelectedFile()
 	if file == nil {
 		return nil
@@ -511,16 +368,4 @@ func (gui *Gui) OpenFile(filename string) error {
 		return gui.SurfaceError(err)
 	}
 	return nil
-}
-
-func (gui *Gui) HandleCustomCommand() error {
-	return gui.Prompt(PromptOpts{
-		Title: gui.Tr.CustomCommand,
-		HandleConfirm: func(command string) error {
-			gui.onRunCommand(oscommands.NewCmdLogEntry(command, gui.Tr.Spans.CustomCommand, true))
-			return gui.RunSubprocessWithSuspenseAndRefresh(
-				gui.OSCommand.PrepareShellSubProcess(command),
-			)
-		},
-	})
 }

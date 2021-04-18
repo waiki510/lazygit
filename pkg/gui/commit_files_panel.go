@@ -110,7 +110,7 @@ func (gui *Gui) refreshCommitFilesView() error {
 	}
 	gui.State.CommitFileManager.SetFiles(files, to)
 
-	return gui.postRefreshUpdate(gui.State.Contexts.CommitFiles)
+	return gui.PostRefreshUpdate(gui.State.Contexts.CommitFiles)
 }
 
 func (gui *Gui) handleOpenOldCommitFile() error {
@@ -170,7 +170,7 @@ func (gui *Gui) handleToggleFileForPatch() error {
 			gui.GitCommand.PatchManager.Reset()
 		}
 
-		return gui.postRefreshUpdate(gui.State.Contexts.CommitFiles)
+		return gui.PostRefreshUpdate(gui.State.Contexts.CommitFiles)
 	}
 
 	if gui.GitCommand.PatchManager.Active() && gui.GitCommand.PatchManager.To != gui.State.CommitFileManager.GetParent() {
@@ -250,7 +250,7 @@ func (gui *Gui) handleToggleCommitFileDirCollapsed() error {
 
 	gui.State.CommitFileManager.ToggleCollapsed(node.GetPath())
 
-	if err := gui.postRefreshUpdate(gui.State.Contexts.CommitFiles); err != nil {
+	if err := gui.PostRefreshUpdate(gui.State.Contexts.CommitFiles); err != nil {
 		gui.Log.Error(err)
 	}
 

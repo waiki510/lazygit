@@ -15,6 +15,7 @@ type IGuiCommon interface {
 	WithWaitingStatus(message string, f func() error) error
 	SurfaceError(error) error
 	CreateErrorPanel(string) error
+	CreateLoaderPanel(string) error
 	RefreshMainViews(RefreshMainOpts) error
 	RefreshSidePanels(RefreshOptions) error
 	PushContext(Context) error
@@ -23,6 +24,8 @@ type IGuiCommon interface {
 	OnRunCommand(entry oscommands.CmdLogEntry)
 	RunSubprocessWithSuspenseAndRefresh(cmd *exec.Cmd) error
 	CreateMenu(title string, items []*menuItem, createMenuOptions CreateMenuOptions) error
+	PostRefreshUpdate(Context) error
+	PopupPanelFocused() bool
 }
 
 type IGuiCredentials interface {

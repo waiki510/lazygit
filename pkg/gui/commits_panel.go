@@ -129,7 +129,7 @@ func (gui *Gui) refreshCommitsWithLimit() error {
 	}
 	gui.State.Commits = commits
 
-	return gui.postRefreshUpdate(gui.State.Contexts.BranchCommits)
+	return gui.PostRefreshUpdate(gui.State.Contexts.BranchCommits)
 }
 
 func (gui *Gui) refreshRebaseCommits() error {
@@ -144,7 +144,7 @@ func (gui *Gui) refreshRebaseCommits() error {
 	}
 	gui.State.Commits = updatedCommits
 
-	return gui.postRefreshUpdate(gui.State.Contexts.BranchCommits)
+	return gui.PostRefreshUpdate(gui.State.Contexts.BranchCommits)
 }
 
 // specific functions
@@ -443,17 +443,12 @@ func (gui *Gui) handleCommitPick() error {
 		return err
 	}
 
-	applied, err := gui.handleMidRebaseCommand("pick")
+	_, err := gui.handleMidRebaseCommand("pick")
 	if err != nil {
 		return err
 	}
-	if applied {
-		return nil
-	}
 
-	// at this point we aren't actually rebasing so we will interpret this as an
-	// attempt to pull. We might revoke this later after enabling configurable keybindings
-	return gui.handlePullFiles()
+	return nil
 }
 
 func (gui *Gui) handleCommitRevert() error {

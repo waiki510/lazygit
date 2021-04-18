@@ -136,7 +136,7 @@ func (gui *Gui) handleMovePatchIntoWorkingTree() error {
 		})
 	}
 
-	if len(gui.trackedFiles()) > 0 {
+	if len(gui.TrackedFiles()) > 0 {
 		return gui.Ask(AskOpts{
 			Title:  gui.Tr.MustStashTitle,
 			Prompt: gui.Tr.MustStashWarning,
