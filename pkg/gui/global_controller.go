@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
+	"github.com/jesseduffield/lazygit/pkg/config"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 )
 
@@ -26,6 +27,29 @@ type GlobalController struct {
 
 func NewGlobalController(gui *Gui) *GlobalController {
 	return &GlobalController{IGuiGlobalController: gui, GuiCore: gui.GuiCore}
+}
+
+func (gui *GlobalController) GetKeybindings(keybindingsConfig config.KeybindingConfig, getKey func(string) interface{}) []*Binding {
+	return []*Binding{
+		{
+			ViewName:    "",
+			Key:         getKey(keybindingsConfig.Universal.PushFiles),
+			Handler:     gui.HandlePushFiles,
+			Description: gui.Tr.LcPush,
+		},
+		{
+			ViewName:    "",
+			Key:         getKey(keybindingsConfig.Universal.PullFiles),
+			Handler:     gui.HandlePullFiles,
+			Description: gui.Tr.LcPull,
+		},
+		{
+			ViewName:    "",
+			Key:         getKey(keybindingsConfig.Universal.ExecuteCustomCommand),
+			Handler:     gui.HandleCustomCommand,
+			Description: gui.Tr.LcExecuteCustomCommand,
+		},
+	}
 }
 
 func (gui *GlobalController) HandleCustomCommand() error {

@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/jesseduffield/gocui"
+	"github.com/jesseduffield/lazygit/pkg/config"
 	"github.com/jesseduffield/lazygit/pkg/constants"
 )
 
@@ -206,9 +207,6 @@ func (gui *Gui) getKey(key string) interface{} {
 func (gui *Gui) GetInitialKeybindings() []*Binding {
 	config := gui.Config.GetUserConfig().Keybinding
 
-	tagsController := NewTagsController(gui)
-	globalController := NewGlobalController(gui)
-
 	bindings := []*Binding{
 		{
 			ViewName: "",
@@ -366,24 +364,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.LcAllBranchesLogGraph,
 		},
 		{
-			ViewName:    "",
-			Key:         gui.getKey(config.Universal.PushFiles),
-			Handler:     globalController.HandlePushFiles,
-			Description: gui.Tr.LcPush,
-		},
-		{
-			ViewName:    "",
-			Key:         gui.getKey(config.Universal.PullFiles),
-			Handler:     globalController.HandlePullFiles,
-			Description: gui.Tr.LcPull,
-		},
-		{
-			ViewName:    "",
-			Key:         gui.getKey(config.Universal.ExecuteCustomCommand),
-			Handler:     globalController.HandleCustomCommand,
-			Description: gui.Tr.LcExecuteCustomCommand,
-		},
-		{
 			ViewName:    "branches",
 			Contexts:    []string{string(LOCAL_BRANCHES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.Select),
@@ -489,42 +469,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Key:         gui.getKey(config.Universal.GoInto),
 			Handler:     gui.handleSwitchToSubCommits,
 			Description: gui.Tr.LcViewCommits,
-		},
-		{
-			ViewName:    "branches",
-			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.Select),
-			Handler:     tagsController.WithSelectedTag(tagsController.HandleCheckout),
-			Description: gui.Tr.LcCheckout,
-		},
-		{
-			ViewName:    "branches",
-			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.Remove),
-			Handler:     tagsController.WithSelectedTag(tagsController.HandleDelete),
-			Description: gui.Tr.LcDeleteTag,
-		},
-		{
-			ViewName:    "branches",
-			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Branches.PushTag),
-			Handler:     tagsController.WithSelectedTag(tagsController.HandlePush),
-			Description: gui.Tr.LcPushTag,
-		},
-		{
-			ViewName:    "branches",
-			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.New),
-			Handler:     tagsController.HandleCreate,
-			Description: gui.Tr.LcCreateTag,
-		},
-		{
-			ViewName:    "branches",
-			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Commits.ViewResetOptions),
-			Handler:     tagsController.WithSelectedTag(tagsController.HandleCreateResetMenu),
-			Description: gui.Tr.LcViewResetOptions,
-			OpensMenu:   true,
 		},
 		{
 			ViewName:    "branches",
@@ -1587,7 +1531,9 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 	}
 
-	bindings = append(bindings, NewFilesController(gui).getKeyBindings(config, gui.getKey)...)
+	for _, controller := range gui.getControllers() {
+		bindings = append(bindings, controller.GetKeybindings(config, gui.getKey)...)
+	}
 
 	for _, viewName := range []string{"status", "branches", "files", "commits", "commitFiles", "stash", "menu"} {
 		bindings = append(bindings, []*Binding{
@@ -1627,6 +1573,18 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 	bindings = append(bindings, gui.getListContextKeyBindings()...)
 
 	return bindings
+}
+
+type Controller interface {
+	GetKeybindings(keybindingsConfig config.KeybindingConfig, getKey func(string) interface{}) []*Binding
+}
+
+func (gui *Gui) getControllers() []Controller {
+	return []Controller{
+		NewFilesController(gui),
+		NewTagsController(gui),
+		NewGlobalController(gui),
+	}
 }
 
 func (gui *Gui) keybindings() error {

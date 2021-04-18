@@ -6,6 +6,7 @@ import (
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
+	"github.com/jesseduffield/lazygit/pkg/config"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 )
 
@@ -56,6 +57,47 @@ type TagsController struct {
 
 func NewTagsController(gui *Gui) *TagsController {
 	return &TagsController{IGuiTagsController: gui, GuiCore: gui.GuiCore}
+}
+
+func (gui *TagsController) GetKeybindings(keybindingsConfig config.KeybindingConfig, getKey func(string) interface{}) []*Binding {
+	return []*Binding{
+		{
+			ViewName:    "branches",
+			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.Select),
+			Handler:     gui.WithSelectedTag(gui.HandleCheckout),
+			Description: gui.Tr.LcCheckout,
+		},
+		{
+			ViewName:    "branches",
+			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.Remove),
+			Handler:     gui.WithSelectedTag(gui.HandleDelete),
+			Description: gui.Tr.LcDeleteTag,
+		},
+		{
+			ViewName:    "branches",
+			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Branches.PushTag),
+			Handler:     gui.WithSelectedTag(gui.HandlePush),
+			Description: gui.Tr.LcPushTag,
+		},
+		{
+			ViewName:    "branches",
+			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.New),
+			Handler:     gui.HandleCreate,
+			Description: gui.Tr.LcCreateTag,
+		},
+		{
+			ViewName:    "branches",
+			Contexts:    []string{string(TAGS_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Commits.ViewResetOptions),
+			Handler:     gui.WithSelectedTag(gui.HandleCreateResetMenu),
+			Description: gui.Tr.LcViewResetOptions,
+			OpensMenu:   true,
+		},
+	}
 }
 
 func (gui *TagsController) HandleCreate() error {

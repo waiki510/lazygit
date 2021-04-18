@@ -73,7 +73,7 @@ func NewFilesController(gui *Gui) *FilesController {
 	return &FilesController{IGuiFilesController: gui, GuiCore: gui.GuiCore}
 }
 
-func (gui *FilesController) getKeyBindings(keybindingsConfig config.KeybindingConfig, getKey func(string) interface{}) []*Binding {
+func (gui *FilesController) GetKeybindings(keybindingsConfig config.KeybindingConfig, getKey func(string) interface{}) []*Binding {
 	return []*Binding{
 		{
 			ViewName:    "files",
