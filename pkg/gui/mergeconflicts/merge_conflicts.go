@@ -28,16 +28,13 @@ func FindConflicts(content string) []commands.Conflict {
 	var newConflict commands.Conflict
 	for i, line := range utils.SplitLines(content) {
 		trimmedLine := strings.TrimPrefix(line, "++")
-		switch trimmedLine {
-		case "<<<<<<< HEAD", "<<<<<<< MERGE_HEAD", "<<<<<<< Updated upstream", "<<<<<<< ours":
+		if trimmedLine == "<<<<<<< HEAD" || trimmedLine == "<<<<<<< MERGE_HEAD" || trimmedLine == "<<<<<<< ours" || strings.HasPrefix(trimmedLine, "<<<<<<< Updated upstream") {
 			newConflict = commands.Conflict{Start: i}
-		case "=======":
+		} else if trimmedLine == "=======" {
 			newConflict.Middle = i
-		default:
-			if strings.HasPrefix(trimmedLine, ">>>>>>> ") {
-				newConflict.End = i
-				conflicts = append(conflicts, newConflict)
-			}
+		} else if strings.HasPrefix(trimmedLine, ">>>>>>> ") {
+			newConflict.End = i
+			conflicts = append(conflicts, newConflict)
 		}
 
 	}
