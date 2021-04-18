@@ -152,5 +152,5 @@ func (gui *Gui) handleCreateDiffingMenuPanel() error {
 		}...)
 	}
 
-	return gui.createMenu(gui.Tr.DiffingMenuTitle, menuItems, createMenuOptions{showCancel: true})
+	return gui.CreateMenu(gui.Tr.DiffingMenuTitle, menuItems, CreateMenuOptions{ShowCancel: true})
 }

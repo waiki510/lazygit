@@ -61,7 +61,7 @@ func (gui *Gui) handleCreatePatchOptionsMenu() error {
 		}
 	}
 
-	return gui.createMenu(gui.Tr.PatchOptionsTitle, menuItems, createMenuOptions{showCancel: true})
+	return gui.CreateMenu(gui.Tr.PatchOptionsTitle, menuItems, CreateMenuOptions{ShowCancel: true})
 }
 
 func (gui *Gui) getPatchCommitIndex() int {

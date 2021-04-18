@@ -73,6 +73,7 @@ type GuiCore struct {
 	State  *GuiState
 	Log    *logrus.Entry
 	Config config.AppConfigurer
+	Views  Views
 }
 
 // Gui wraps the gocui Gui object which handles rendering and events
@@ -109,8 +110,6 @@ type Gui struct {
 	// this tells us whether our views have been initially set up
 	ViewsSetup bool
 
-	Views Views
-
 	// if we've suspended the gui (e.g. because we've switched to a subprocess)
 	// we typically want to pause some things that are running like background
 	// file refreshes
@@ -118,7 +117,7 @@ type Gui struct {
 
 	// Log of the commands that get run, to be displayed to the user.
 	CmdLog       []string
-	OnRunCommand func(entry oscommands.CmdLogEntry)
+	onRunCommand func(entry oscommands.CmdLogEntry)
 
 	// the extras window contains things like the command log
 	ShowExtrasWindow bool
@@ -489,9 +488,13 @@ func NewGui(log *logrus.Entry, gitCommand *commands.GitCommand, oSCommand *oscom
 
 	onRunCommand := gui.GetOnRunCommand()
 	oSCommand.SetOnRunCommand(onRunCommand)
-	gui.OnRunCommand = onRunCommand
+	gui.onRunCommand = onRunCommand
 
 	return gui, nil
+}
+
+func (gui *Gui) OnRunCommand(entry oscommands.CmdLogEntry) {
+	gui.onRunCommand(entry)
 }
 
 func (gui *Gui) GetGitCommand() *commands.GitCommand {
@@ -573,7 +576,7 @@ func (gui *Gui) Run() error {
 		go utils.Safe(gui.startBackgroundFetch)
 	}
 
-	gui.goEvery(time.Second*time.Duration(userConfig.Refresher.RefreshInterval), gui.stopChan, gui.refreshFilesAndSubmodules)
+	gui.goEvery(time.Second*time.Duration(userConfig.Refresher.RefreshInterval), gui.stopChan, gui.RefreshFilesAndSubmodules)
 
 	g.SetManager(gocui.ManagerFunc(gui.layout), gocui.ManagerFunc(gui.getFocusLayout()))
 
@@ -622,7 +625,7 @@ func (gui *Gui) RunAndHandleError() error {
 }
 
 // returns whether command exited without error or not
-func (gui *Gui) runSubprocessWithSuspenseAndRefresh(subprocess *exec.Cmd) error {
+func (gui *Gui) RunSubprocessWithSuspenseAndRefresh(subprocess *exec.Cmd) error {
 	_, err := gui.runSubprocessWithSuspense(subprocess)
 	if err != nil {
 		return err

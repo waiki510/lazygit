@@ -23,7 +23,7 @@ func (gui *Gui) handleCreateExtrasMenuPanel() error {
 		},
 	}
 
-	return gui.createMenu(gui.Tr.CommandLog, menuItems, createMenuOptions{showCancel: true})
+	return gui.CreateMenu(gui.Tr.CommandLog, menuItems, CreateMenuOptions{ShowCancel: true})
 }
 
 func (gui *Gui) handleFocusCommandLog() error {

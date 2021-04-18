@@ -67,7 +67,7 @@ func (gui *Gui) handleCredentialsViewFocused() error {
 		},
 	)
 
-	gui.renderString(gui.Views.Options, message)
+	gui.RenderString(gui.Views.Options, message)
 	return nil
 }
 

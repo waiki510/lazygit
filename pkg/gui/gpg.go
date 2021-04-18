@@ -4,7 +4,7 @@ package gui
 // WithWaitingStatus we get stuck there and can't return to lazygit. We could
 // fix this bug, or just stop running subprocesses from within there, given that
 // we don't need to see a loading status if we're in a subprocess.
-func (gui *Gui) withGpgHandling(cmdStr string, waitingStatus string, onSuccess func() error) error {
+func (gui *Gui) WithGpgHandling(cmdStr string, waitingStatus string, onSuccess func() error) error {
 	useSubprocess := gui.GitCommand.UsingGpg()
 	if useSubprocess {
 		// Need to remember why we use the shell for the subprocess but not in the other case

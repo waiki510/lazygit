@@ -265,7 +265,7 @@ func (gui *Gui) handleRenameCommitEditor() error {
 		return gui.SurfaceError(err)
 	}
 	if subProcess != nil {
-		return gui.runSubprocessWithSuspenseAndRefresh(subProcess)
+		return gui.RunSubprocessWithSuspenseAndRefresh(subProcess)
 	}
 
 	return nil
@@ -288,7 +288,7 @@ func (gui *Gui) handleMidRebaseCommand(action string) (bool, error) {
 		return true, gui.CreateErrorPanel(gui.Tr.LcRewordNotSupported)
 	}
 
-	gui.OnRunCommand(oscommands.NewCmdLogEntry(
+	gui.onRunCommand(oscommands.NewCmdLogEntry(
 		fmt.Sprintf("Updating rebase action of commit %s to '%s'", selectedCommit.ShortSha(), action),
 		"Update rebase TODO",
 		false,
@@ -342,7 +342,7 @@ func (gui *Gui) handleCommitMoveDown() error {
 
 		// logging directly here because MoveTodoDown doesn't have enough information
 		// to provide a useful log
-		gui.OnRunCommand(oscommands.NewCmdLogEntry(
+		gui.onRunCommand(oscommands.NewCmdLogEntry(
 			fmt.Sprintf("Moving commit %s down", selectedCommit.ShortSha()),
 			span,
 			false,
@@ -380,7 +380,7 @@ func (gui *Gui) handleCommitMoveUp() error {
 	if selectedCommit.Status == "rebasing" {
 		// logging directly here because MoveTodoDown doesn't have enough information
 		// to provide a useful log
-		gui.OnRunCommand(oscommands.NewCmdLogEntry(
+		gui.onRunCommand(oscommands.NewCmdLogEntry(
 			fmt.Sprintf("Moving commit %s up", selectedCommit.ShortSha()),
 			span,
 			false,

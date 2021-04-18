@@ -52,7 +52,7 @@ func (gui *Gui) startUpdating(newVersion string) {
 func (gui *Gui) onUpdateFinish(statusId int, err error) error {
 	gui.State.Updating = false
 	gui.statusManager.removeStatus(statusId)
-	gui.renderString(gui.Views.AppStatus, "")
+	gui.RenderString(gui.Views.AppStatus, "")
 	if err != nil {
 		return gui.CreateErrorPanel("Update failed: " + err.Error())
 	}

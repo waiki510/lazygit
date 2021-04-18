@@ -46,12 +46,12 @@ func (gui *Gui) handleMenuClose() error {
 	return gui.returnFromContext()
 }
 
-type createMenuOptions struct {
-	showCancel bool
+type CreateMenuOptions struct {
+	ShowCancel bool
 }
 
-func (gui *Gui) createMenu(title string, items []*menuItem, createMenuOptions createMenuOptions) error {
-	if createMenuOptions.showCancel {
+func (gui *Gui) CreateMenu(title string, items []*menuItem, createMenuOptions CreateMenuOptions) error {
+	if createMenuOptions.ShowCancel {
 		// this is mutative but I'm okay with that for now
 		items = append(items, &menuItem{
 			displayStrings: []string{gui.Tr.LcCancel},

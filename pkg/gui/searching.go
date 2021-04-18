@@ -16,7 +16,7 @@ func (gui *Gui) handleOpenSearch(viewName string) error {
 	gui.State.Searching.isSearching = true
 	gui.State.Searching.view = view
 
-	gui.renderString(gui.Views.Search, "")
+	gui.RenderString(gui.Views.Search, "")
 
 	if err := gui.PushContext(gui.State.Contexts.Search); err != nil {
 		return err
@@ -48,7 +48,7 @@ func (gui *Gui) onSelectItemWrapper(innerFunc func(int) error) func(int, int, in
 
 	return func(y int, index int, total int) error {
 		if total == 0 {
-			gui.renderString(
+			gui.RenderString(
 				gui.Views.Search,
 				fmt.Sprintf(
 					"no matches for '%s' %s",
@@ -61,7 +61,7 @@ func (gui *Gui) onSelectItemWrapper(innerFunc func(int) error) func(int, int, in
 			)
 			return nil
 		}
-		gui.renderString(
+		gui.RenderString(
 			gui.Views.Search,
 			fmt.Sprintf(
 				"matches for '%s' (%d of %d) %s",

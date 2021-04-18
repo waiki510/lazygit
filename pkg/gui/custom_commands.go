@@ -60,7 +60,7 @@ func (gui *Gui) handleCustomCommandKeybinding(customCommand config.CustomCommand
 			}
 
 			if customCommand.Subprocess {
-				return gui.runSubprocessWithSuspenseAndRefresh(gui.OSCommand.PrepareShellSubProcess(cmdStr))
+				return gui.RunSubprocessWithSuspenseAndRefresh(gui.OSCommand.PrepareShellSubProcess(cmdStr))
 			}
 
 			loadingText := customCommand.LoadingText
@@ -151,7 +151,7 @@ func (gui *Gui) handleCustomCommandKeybinding(customCommand config.CustomCommand
 						return gui.SurfaceError(err)
 					}
 
-					return gui.createMenu(title, menuItems, createMenuOptions{showCancel: true})
+					return gui.CreateMenu(title, menuItems, CreateMenuOptions{ShowCancel: true})
 				}
 			default:
 				return gui.CreateErrorPanel("custom command prompt must have a type of 'input' or 'menu'")

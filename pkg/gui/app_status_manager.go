@@ -97,10 +97,10 @@ func (gui *Gui) renderAppStatus() {
 		for range ticker.C {
 			appStatus := gui.statusManager.getStatusString()
 			if appStatus == "" {
-				gui.renderString(gui.Views.AppStatus, "")
+				gui.RenderString(gui.Views.AppStatus, "")
 				return
 			}
-			gui.renderString(gui.Views.AppStatus, appStatus)
+			gui.RenderString(gui.Views.AppStatus, appStatus)
 		}
 	})
 }

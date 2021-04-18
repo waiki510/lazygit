@@ -207,7 +207,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 	config := gui.Config.GetUserConfig().Keybinding
 
 	tagsController := NewTagsController(gui)
-	// filesController := NewFilesController(gui)
+	filesController := NewFilesController(gui)
 
 	bindings := []*Binding{
 		{
@@ -381,35 +381,35 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.CommitChanges),
-			Handler:     gui.HandleCommitPress,
+			Handler:     filesController.HandleCommitPress,
 			Description: gui.Tr.CommitChanges,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.CommitChangesWithoutHook),
-			Handler:     gui.HandleWIPCommitPress,
+			Handler:     filesController.HandleWIPCommitPress,
 			Description: gui.Tr.LcCommitChangesWithoutHook,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.AmendLastCommit),
-			Handler:     gui.HandleAmendCommitPress,
+			Handler:     filesController.HandleAmendCommitPress,
 			Description: gui.Tr.AmendLastCommit,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.CommitChangesWithEditor),
-			Handler:     gui.HandleCommitEditorPress,
+			Handler:     filesController.HandleCommitEditorPress,
 			Description: gui.Tr.CommitChangesWithEditor,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.Select),
-			Handler:     gui.HandleFilePress,
+			Handler:     filesController.HandleFilePress,
 			Description: gui.Tr.LcToggleStaged,
 		},
 		{
@@ -424,28 +424,28 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.Edit),
-			Handler:     gui.HandleFileEdit,
+			Handler:     filesController.HandleFileEdit,
 			Description: gui.Tr.LcEditFile,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.OpenFile),
-			Handler:     gui.HandleFileOpen,
+			Handler:     filesController.HandleFileOpen,
 			Description: gui.Tr.LcOpenFile,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.IgnoreFile),
-			Handler:     gui.HandleIgnoreFile,
+			Handler:     filesController.HandleIgnoreFile,
 			Description: gui.Tr.LcIgnoreFile,
 		},
 		{
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.RefreshFiles),
-			Handler:     gui.HandleRefreshFiles,
+			Handler:     filesController.HandleRefreshFiles,
 			Description: gui.Tr.LcRefreshFiles,
 		},
 		{
@@ -467,7 +467,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.ToggleStagedAll),
-			Handler:     gui.HandleStageAll,
+			Handler:     filesController.HandleStageAll,
 			Description: gui.Tr.LcToggleStagedAll,
 		},
 		{
@@ -482,7 +482,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.GoInto),
-			Handler:     gui.HandleEnterFile,
+			Handler:     filesController.HandleEnterFile,
 			Description: gui.Tr.FileEnter,
 		},
 		{
@@ -1289,14 +1289,14 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "main",
 			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.Edit),
-			Handler:     gui.HandleFileEdit,
+			Handler:     filesController.HandleFileEdit,
 			Description: gui.Tr.LcEditFile,
 		},
 		{
 			ViewName:    "main",
 			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.OpenFile),
-			Handler:     gui.HandleFileOpen,
+			Handler:     filesController.HandleFileOpen,
 			Description: gui.Tr.LcOpenFile,
 		},
 		{
@@ -1404,21 +1404,21 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "main",
 			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.CommitChanges),
-			Handler:     gui.HandleCommitPress,
+			Handler:     filesController.HandleCommitPress,
 			Description: gui.Tr.CommitChanges,
 		},
 		{
 			ViewName:    "main",
 			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.CommitChangesWithoutHook),
-			Handler:     gui.HandleWIPCommitPress,
+			Handler:     filesController.HandleWIPCommitPress,
 			Description: gui.Tr.LcCommitChangesWithoutHook,
 		},
 		{
 			ViewName:    "main",
 			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.CommitChangesWithEditor),
-			Handler:     gui.HandleCommitEditorPress,
+			Handler:     filesController.HandleCommitEditorPress,
 			Description: gui.Tr.CommitChangesWithEditor,
 		},
 		{

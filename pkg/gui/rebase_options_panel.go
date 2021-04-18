@@ -33,7 +33,7 @@ func (gui *Gui) handleCreateRebaseOptionsMenu() error {
 		title = gui.Tr.RebaseOptionsTitle
 	}
 
-	return gui.createMenu(title, menuItems, createMenuOptions{showCancel: true})
+	return gui.CreateMenu(title, menuItems, CreateMenuOptions{ShowCancel: true})
 }
 
 func (gui *Gui) genericMergeCommand(command string) error {
@@ -52,7 +52,7 @@ func (gui *Gui) genericMergeCommand(command string) error {
 	if status == commands.REBASE_MODE_MERGING && command != "abort" && gui.Config.GetUserConfig().Git.Merging.ManualCommit {
 		sub := gitCommand.OSCommand.PrepareSubProcess("git", commandType, fmt.Sprintf("--%s", command))
 		if sub != nil {
-			return gui.runSubprocessWithSuspenseAndRefresh(sub)
+			return gui.RunSubprocessWithSuspenseAndRefresh(sub)
 		}
 		return nil
 	}

@@ -2,14 +2,12 @@ package gui
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazygit/pkg/commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
-	"github.com/jesseduffield/lazygit/pkg/config"
 	"github.com/jesseduffield/lazygit/pkg/gui/filetree"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 )
@@ -96,7 +94,7 @@ func (gui *Gui) SelectFile(alreadySelected bool) error {
 	return gui.RefreshMainViews(refreshOpts)
 }
 
-func (gui *Gui) refreshFilesAndSubmodules() error {
+func (gui *Gui) RefreshFilesAndSubmodules() error {
 	gui.Mutexes.RefreshingFilesMutex.Lock()
 	gui.State.IsRefreshingFiles = true
 	defer func() {
@@ -141,7 +139,7 @@ func (gui *Gui) refreshFilesAndSubmodules() error {
 
 // specific functions
 
-func (gui *Gui) stagedFiles() []*models.File {
+func (gui *Gui) StagedFiles() []*models.File {
 	files := gui.State.FileManager.GetAllFiles()
 	result := make([]*models.File, 0)
 	for _, file := range files {
@@ -161,10 +159,6 @@ func (gui *Gui) trackedFiles() []*models.File {
 		}
 	}
 	return result
-}
-
-func (gui *Gui) HandleEnterFile() error {
-	return gui.EnterFile(false, -1)
 }
 
 func (gui *Gui) EnterFile(forceSecondaryFocused bool, selectedLineIdx int) error {
@@ -196,215 +190,8 @@ func (gui *Gui) EnterFile(forceSecondaryFocused bool, selectedLineIdx int) error
 	return gui.handleRefreshStagingPanel(forceSecondaryFocused, selectedLineIdx) // TODO: check if this is broken, try moving into context code
 }
 
-func (gui *Gui) HandleFilePress() error {
-	node := gui.GetSelectedFileNode()
-	if node == nil {
-		return nil
-	}
-
-	if node.IsLeaf() {
-		file := node.File
-
-		if file.HasInlineMergeConflicts {
-			return gui.HandleSwitchToMerge()
-		}
-
-		if file.HasUnstagedChanges {
-			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.StageFile).StageFile(file.Name); err != nil {
-				return gui.SurfaceError(err)
-			}
-		} else {
-			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.UnstageFile).UnStageFile(file.Names(), file.Tracked); err != nil {
-				return gui.SurfaceError(err)
-			}
-		}
-	} else {
-		// if any files within have inline merge conflicts we can't stage or unstage,
-		// or it'll end up with those >>>>>> lines actually staged
-		if node.GetHasInlineMergeConflicts() {
-			return gui.CreateErrorPanel(gui.Tr.ErrStageDirWithInlineMergeConflicts)
-		}
-
-		if node.GetHasUnstagedChanges() {
-			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.StageFile).StageFile(node.Path); err != nil {
-				return gui.SurfaceError(err)
-			}
-		} else {
-			// pretty sure it doesn't matter that we're always passing true here
-			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.UnstageFile).UnStageFile([]string{node.Path}, true); err != nil {
-				return gui.SurfaceError(err)
-			}
-		}
-	}
-
-	if err := gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}}); err != nil {
-		return err
-	}
-
-	return gui.SelectFile(true)
-}
-
-func (gui *Gui) allFilesStaged() bool {
-	for _, file := range gui.State.FileManager.GetAllFiles() {
-		if file.HasUnstagedChanges {
-			return false
-		}
-	}
-	return true
-}
-
 func (gui *Gui) focusAndSelectFile() error {
 	return gui.SelectFile(false)
-}
-
-func (gui *Gui) HandleStageAll() error {
-	var err error
-	if gui.allFilesStaged() {
-		err = gui.GitCommand.WithSpan(gui.Tr.Spans.UnstageAllFiles).UnstageAll()
-	} else {
-		err = gui.GitCommand.WithSpan(gui.Tr.Spans.StageAllFiles).StageAll()
-	}
-	if err != nil {
-		_ = gui.SurfaceError(err)
-	}
-
-	if err := gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}}); err != nil {
-		return err
-	}
-
-	return gui.SelectFile(false)
-}
-
-func (gui *Gui) HandleIgnoreFile() error {
-	node := gui.GetSelectedFileNode()
-	if node == nil {
-		return nil
-	}
-
-	if node.GetPath() == ".gitignore" {
-		return gui.CreateErrorPanel("Cannot ignore .gitignore")
-	}
-
-	gitCommand := gui.GitCommand.WithSpan(gui.Tr.Spans.IgnoreFile)
-
-	unstageFiles := func() error {
-		return node.ForEachFile(func(file *models.File) error {
-			if file.HasStagedChanges {
-				if err := gitCommand.UnStageFile(file.Names(), file.Tracked); err != nil {
-					return err
-				}
-			}
-
-			return nil
-		})
-	}
-
-	if node.GetIsTracked() {
-		return gui.Ask(AskOpts{
-			Title:  gui.Tr.IgnoreTracked,
-			Prompt: gui.Tr.IgnoreTrackedPrompt,
-			HandleConfirm: func() error {
-				// not 100% sure if this is necessary but I'll assume it is
-				if err := unstageFiles(); err != nil {
-					return err
-				}
-
-				if err := gitCommand.RemoveTrackedFiles(node.GetPath()); err != nil {
-					return err
-				}
-
-				if err := gitCommand.Ignore(node.GetPath()); err != nil {
-					return err
-				}
-				return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}})
-			},
-		})
-	}
-
-	if err := unstageFiles(); err != nil {
-		return err
-	}
-
-	if err := gitCommand.Ignore(node.GetPath()); err != nil {
-		return gui.SurfaceError(err)
-	}
-
-	return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}})
-}
-
-func (gui *Gui) HandleWIPCommitPress() error {
-	skipHookPrefix := gui.Config.GetUserConfig().Git.SkipHookPrefix
-	if skipHookPrefix == "" {
-		return gui.CreateErrorPanel(gui.Tr.SkipHookPrefixNotConfigured)
-	}
-
-	if err := gui.Views.CommitMessage.SetEditorContent(skipHookPrefix); err != nil {
-		return err
-	}
-
-	return gui.HandleCommitPress()
-}
-
-func (gui *Gui) commitPrefixConfigForRepo() *config.CommitPrefixConfig {
-	cfg, ok := gui.Config.GetUserConfig().Git.CommitPrefixes[utils.GetCurrentRepoName()]
-	if !ok {
-		return nil
-	}
-
-	return &cfg
-}
-
-func (gui *Gui) prepareFilesForCommit() error {
-	noStagedFiles := len(gui.stagedFiles()) == 0
-	if noStagedFiles && gui.Config.GetUserConfig().Gui.SkipNoStagedFilesWarning {
-		err := gui.GitCommand.WithSpan(gui.Tr.Spans.StageAllFiles).StageAll()
-		if err != nil {
-			return err
-		}
-
-		return gui.refreshFilesAndSubmodules()
-	}
-
-	return nil
-}
-
-func (gui *Gui) HandleCommitPress() error {
-	if err := gui.prepareFilesForCommit(); err != nil {
-		return gui.SurfaceError(err)
-	}
-
-	if gui.State.FileManager.GetItemsLength() == 0 {
-		return gui.CreateErrorPanel(gui.Tr.NoFilesStagedTitle)
-	}
-
-	if len(gui.stagedFiles()) == 0 {
-		return gui.promptToStageAllAndRetry(gui.HandleCommitPress)
-	}
-
-	commitPrefixConfig := gui.commitPrefixConfigForRepo()
-	if commitPrefixConfig != nil {
-		prefixPattern := commitPrefixConfig.Pattern
-		prefixReplace := commitPrefixConfig.Replace
-		rgx, err := regexp.Compile(prefixPattern)
-		if err != nil {
-			return gui.CreateErrorPanel(fmt.Sprintf("%s: %s", gui.Tr.LcCommitPrefixPatternError, err.Error()))
-		}
-		prefix := rgx.ReplaceAllString(gui.getCheckedOutBranch().Name, prefixReplace)
-		gui.renderString(gui.Views.CommitMessage, prefix)
-		if err := gui.Views.CommitMessage.SetCursor(len(prefix), 0); err != nil {
-			return err
-		}
-	}
-
-	gui.g.Update(func(g *gocui.Gui) error {
-		if err := gui.PushContext(gui.State.Contexts.CommitMessage); err != nil {
-			return err
-		}
-
-		gui.RenderCommitLength()
-		return nil
-	})
-	return nil
 }
 
 func (gui *Gui) promptToStageAllAndRetry(retry func() error) error {
@@ -415,7 +202,7 @@ func (gui *Gui) promptToStageAllAndRetry(retry func() error) error {
 			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.StageAllFiles).StageAll(); err != nil {
 				return gui.SurfaceError(err)
 			}
-			if err := gui.refreshFilesAndSubmodules(); err != nil {
+			if err := gui.RefreshFilesAndSubmodules(); err != nil {
 				return gui.SurfaceError(err)
 			}
 
@@ -424,81 +211,15 @@ func (gui *Gui) promptToStageAllAndRetry(retry func() error) error {
 	})
 }
 
-func (gui *Gui) HandleAmendCommitPress() error {
-	if gui.State.FileManager.GetItemsLength() == 0 {
-		return gui.CreateErrorPanel(gui.Tr.NoFilesStagedTitle)
-	}
-
-	if len(gui.stagedFiles()) == 0 {
-		return gui.promptToStageAllAndRetry(gui.HandleAmendCommitPress)
-	}
-
-	if len(gui.State.Commits) == 0 {
-		return gui.CreateErrorPanel(gui.Tr.NoCommitToAmend)
-	}
-
-	return gui.Ask(AskOpts{
-		Title:  strings.Title(gui.Tr.AmendLastCommit),
-		Prompt: gui.Tr.SureToAmend,
-		HandleConfirm: func() error {
-			cmdStr := gui.GitCommand.AmendHeadCmdStr()
-			gui.OnRunCommand(oscommands.NewCmdLogEntry(cmdStr, gui.Tr.Spans.AmendCommit, true))
-			return gui.withGpgHandling(cmdStr, gui.Tr.AmendingStatus, nil)
-		},
-	})
-}
-
-// HandleCommitEditorPress - handle when the user wants to commit changes via
-// their editor rather than via the popup panel
-func (gui *Gui) HandleCommitEditorPress() error {
-	if gui.State.FileManager.GetItemsLength() == 0 {
-		return gui.CreateErrorPanel(gui.Tr.NoFilesStagedTitle)
-	}
-
-	if len(gui.stagedFiles()) == 0 {
-		return gui.promptToStageAllAndRetry(gui.HandleCommitEditorPress)
-	}
-
-	return gui.runSubprocessWithSuspenseAndRefresh(
-		gui.OSCommand.WithSpan(gui.Tr.Spans.Commit).PrepareSubProcess("git", "commit"),
-	)
-}
-
 func (gui *Gui) EditFile(filename string) error {
 	cmdStr, err := gui.GitCommand.EditFileCmdStr(filename)
 	if err != nil {
 		return gui.SurfaceError(err)
 	}
 
-	return gui.runSubprocessWithSuspenseAndRefresh(
+	return gui.RunSubprocessWithSuspenseAndRefresh(
 		gui.OSCommand.WithSpan(gui.Tr.Spans.EditFile).PrepareShellSubProcess(cmdStr),
 	)
-}
-
-func (gui *Gui) HandleFileEdit() error {
-	node := gui.GetSelectedFileNode()
-	if node == nil {
-		return nil
-	}
-
-	if node.File == nil {
-		return gui.CreateErrorPanel(gui.Tr.ErrCannotEditDirectory)
-	}
-
-	return gui.EditFile(node.GetPath())
-}
-
-func (gui *Gui) HandleFileOpen() error {
-	node := gui.GetSelectedFileNode()
-	if node == nil {
-		return nil
-	}
-
-	return gui.OpenFile(node.GetPath())
-}
-
-func (gui *Gui) HandleRefreshFiles() error {
-	return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{FILES}})
 }
 
 func (gui *Gui) refreshStateFiles() error {
@@ -696,7 +417,7 @@ func (gui *Gui) pushWithForceFlag(force bool, upstream string, args string) erro
 		return err
 	}
 	go utils.Safe(func() {
-		branchName := gui.getCheckedOutBranch().Name
+		branchName := gui.GetCheckedOutBranch().Name
 		err := gui.GitCommand.WithSpan(gui.Tr.Spans.Push).Push(branchName, force, upstream, args, gui.PromptUserForCredential)
 		if err != nil && !force && strings.Contains(err.Error(), "Updates were rejected") {
 			forcePushDisabled := gui.Config.GetUserConfig().Git.DisableForcePushing
@@ -796,107 +517,10 @@ func (gui *Gui) HandleCustomCommand() error {
 	return gui.Prompt(PromptOpts{
 		Title: gui.Tr.CustomCommand,
 		HandleConfirm: func(command string) error {
-			gui.OnRunCommand(oscommands.NewCmdLogEntry(command, gui.Tr.Spans.CustomCommand, true))
-			return gui.runSubprocessWithSuspenseAndRefresh(
+			gui.onRunCommand(oscommands.NewCmdLogEntry(command, gui.Tr.Spans.CustomCommand, true))
+			return gui.RunSubprocessWithSuspenseAndRefresh(
 				gui.OSCommand.PrepareShellSubProcess(command),
 			)
-		},
-	})
-}
-
-func (gui *Gui) HandleCreateStashMenu() error {
-	menuItems := []*menuItem{
-		{
-			displayString: gui.Tr.LcStashAllChanges,
-			onPress: func() error {
-				return gui.handleStashSave(gui.GitCommand.WithSpan(gui.Tr.Spans.StashAllChanges).StashSave)
-			},
-		},
-		{
-			displayString: gui.Tr.LcStashStagedChanges,
-			onPress: func() error {
-				return gui.handleStashSave(gui.GitCommand.WithSpan(gui.Tr.Spans.StashStagedChanges).StashSaveStagedChanges)
-			},
-		},
-	}
-
-	return gui.createMenu(gui.Tr.LcStashOptions, menuItems, createMenuOptions{showCancel: true})
-}
-
-func (gui *Gui) HandleStashChanges() error {
-	return gui.handleStashSave(gui.GitCommand.StashSave)
-}
-
-func (gui *Gui) HandleCreateResetToUpstreamMenu() error {
-	return gui.CreateResetMenu("@{upstream}")
-}
-
-func (gui *Gui) HandleToggleDirCollapsed() error {
-	node := gui.GetSelectedFileNode()
-	if node == nil {
-		return nil
-	}
-
-	gui.State.FileManager.ToggleCollapsed(node.GetPath())
-
-	if err := gui.postRefreshUpdate(gui.State.Contexts.Files); err != nil {
-		gui.Log.Error(err)
-	}
-
-	return nil
-}
-
-func (gui *Gui) HandleToggleFileTreeView() error {
-	// get path of currently selected file
-	path := gui.GetSelectedPath()
-
-	gui.State.FileManager.ToggleShowTree()
-
-	// find that same node in the new format and move the cursor to it
-	if path != "" {
-		gui.State.FileManager.ExpandToPath(path)
-		index, found := gui.State.FileManager.GetIndexForPath(path)
-		if found {
-			gui.filesListContext().GetPanelState().SetSelectedLineIdx(index)
-		}
-	}
-
-	if ContextKey(gui.Views.Files.Context) == FILES_CONTEXT_KEY {
-		if err := gui.State.Contexts.Files.HandleRender(); err != nil {
-			return err
-		}
-		if err := gui.State.Contexts.Files.HandleFocus(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (gui *Gui) HandleOpenMergeTool() error {
-	return gui.Ask(AskOpts{
-		Title:  gui.Tr.MergeToolTitle,
-		Prompt: gui.Tr.MergeToolPrompt,
-		HandleConfirm: func() error {
-			return gui.runSubprocessWithSuspenseAndRefresh(
-				gui.OSCommand.ExecutableFromString(gui.GitCommand.OpenMergeToolCmd()),
-			)
-		},
-	})
-}
-
-func (gui *Gui) handleStashSave(stashFunc func(message string) error) error {
-	if len(gui.trackedFiles()) == 0 && len(gui.stagedFiles()) == 0 {
-		return gui.CreateErrorPanel(gui.Tr.NoTrackedStagedFilesStash)
-	}
-
-	return gui.Prompt(PromptOpts{
-		Title: gui.Tr.StashChanges,
-		HandleConfirm: func(stashComment string) error {
-			if err := stashFunc(stashComment); err != nil {
-				return gui.SurfaceError(err)
-			}
-			return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{STASH, FILES}})
 		},
 	})
 }

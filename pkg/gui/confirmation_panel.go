@@ -240,7 +240,7 @@ func (gui *Gui) setKeyBindings(opts createPopupPanelOpts) error {
 		},
 	)
 
-	gui.renderString(gui.Views.Options, actions)
+	gui.RenderString(gui.Views.Options, actions)
 	var onConfirm func() error
 	if opts.handleConfirmPrompt != nil {
 		onConfirm = gui.wrappedPromptConfirmationFunction(opts.handlersManageFocus, opts.handleConfirmPrompt, func() string { return gui.Views.Confirmation.Buffer() })

@@ -1,15 +1,28 @@
 package gui
 
 import (
+	"os/exec"
+
+	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
+	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 )
 
-type IGuiCore interface {
+type IGuiCommon interface {
 	Prompt(PromptOpts) error
 	Ask(AskOpts) error
 	WithWaitingStatus(message string, f func() error) error
 	SurfaceError(error) error
+	CreateErrorPanel(string) error
+	RefreshMainViews(RefreshMainOpts) error
+	RefreshSidePanels(RefreshOptions) error
+	PushContext(Context) error
+	RenderString(*gocui.View, string)
+	OnMainThread(f func() error)
+	OnRunCommand(entry oscommands.CmdLogEntry)
+	RunSubprocessWithSuspenseAndRefresh(cmd *exec.Cmd) error
+	CreateMenu(title string, items []*menuItem, createMenuOptions CreateMenuOptions) error
 }
 
 type IGuiCredentials interface {
@@ -22,23 +35,24 @@ type IGuiRefs interface {
 	CreateResetMenu(ref string) error
 }
 
-type IGui interface {
-	IGuiCore
+type IGuiTags interface {
+	GetSelectedTag() *models.Tag
+}
+
+type IGuiTagsController interface {
+	IGuiCommon
 	IGuiCredentials
 	IGuiRefs
-	GetSelectedTag() *models.Tag
-	RefreshMainViews(RefreshMainOpts) error
-	RefreshSidePanels(RefreshOptions) error
-	PushContext(Context) error
+	IGuiTags
 }
 
 type TagsController struct {
-	IGui
+	IGuiTagsController
 	*GuiCore
 }
 
 func NewTagsController(gui *Gui) *TagsController {
-	return &TagsController{IGui: gui, GuiCore: gui.GuiCore}
+	return &TagsController{IGuiTagsController: gui, GuiCore: gui.GuiCore}
 }
 
 func (gui *TagsController) HandleCreate() error {

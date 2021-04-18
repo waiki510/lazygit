@@ -50,7 +50,7 @@ func (gui *Gui) newStringTask(view *gocui.View, str string) error {
 	manager := gui.getManager(view)
 
 	f := func(stop chan struct{}) error {
-		gui.renderString(view, str)
+		gui.RenderString(view, str)
 		return nil
 	}
 

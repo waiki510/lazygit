@@ -207,7 +207,7 @@ func (gui *Gui) handleResetRemoveSubmodule(submodule *models.SubmoduleConfig) er
 		},
 	}
 
-	return gui.createMenu(submodule.Name, menuItems, createMenuOptions{showCancel: true})
+	return gui.CreateMenu(submodule.Name, menuItems, CreateMenuOptions{ShowCancel: true})
 }
 
 func (gui *Gui) handleBulkSubmoduleActionsMenu() error {
@@ -262,7 +262,7 @@ func (gui *Gui) handleBulkSubmoduleActionsMenu() error {
 		},
 	}
 
-	return gui.createMenu(gui.Tr.LcBulkSubmoduleOptions, menuItems, createMenuOptions{showCancel: true})
+	return gui.CreateMenu(gui.Tr.LcBulkSubmoduleOptions, menuItems, CreateMenuOptions{ShowCancel: true})
 }
 
 func (gui *Gui) handleUpdateSubmodule(submodule *models.SubmoduleConfig) error {

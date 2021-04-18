@@ -98,7 +98,7 @@ func (gui *Gui) handleCreatePullRequestPress() error {
 	if err != nil {
 		return gui.SurfaceError(err)
 	}
-	gui.OnRunCommand(oscommands.NewCmdLogEntry(fmt.Sprintf("Creating pull request at URL: %s", url), "Create pull request", false))
+	gui.onRunCommand(oscommands.NewCmdLogEntry(fmt.Sprintf("Creating pull request at URL: %s", url), "Create pull request", false))
 
 	return nil
 }
@@ -111,7 +111,7 @@ func (gui *Gui) handleCopyPullRequestURLPress() error {
 	if err != nil {
 		return gui.SurfaceError(err)
 	}
-	gui.OnRunCommand(oscommands.NewCmdLogEntry(fmt.Sprintf("Copying to clipboard: '%s'", url), "Copy URL", false))
+	gui.onRunCommand(oscommands.NewCmdLogEntry(fmt.Sprintf("Copying to clipboard: '%s'", url), "Copy URL", false))
 
 	gui.raiseToast(gui.Tr.PullRequestURLCopiedToClipboard)
 
@@ -237,7 +237,7 @@ func (gui *Gui) handleCheckoutByName() error {
 	)
 }
 
-func (gui *Gui) getCheckedOutBranch() *models.Branch {
+func (gui *Gui) GetCheckedOutBranch() *models.Branch {
 	if len(gui.State.Branches) == 0 {
 		return nil
 	}
@@ -268,7 +268,7 @@ func (gui *Gui) deleteBranch(force bool) error {
 	if selectedBranch == nil {
 		return nil
 	}
-	checkedOutBranch := gui.getCheckedOutBranch()
+	checkedOutBranch := gui.GetCheckedOutBranch()
 	if checkedOutBranch.Name == selectedBranch.Name {
 		return gui.CreateErrorPanel(gui.Tr.CantDeleteCheckOutBranch)
 	}
@@ -314,7 +314,7 @@ func (gui *Gui) mergeBranchIntoCheckedOutBranch(branchName string) error {
 	if gui.GitCommand.IsHeadDetached() {
 		return gui.CreateErrorPanel("Cannot merge branch in detached head state. You might have checked out a commit directly or a remote branch, in which case you should checkout the local branch you want to be on")
 	}
-	checkedOutBranchName := gui.getCheckedOutBranch().Name
+	checkedOutBranchName := gui.GetCheckedOutBranch().Name
 	if checkedOutBranchName == branchName {
 		return gui.CreateErrorPanel(gui.Tr.CantMergeBranchIntoItself)
 	}
@@ -355,7 +355,7 @@ func (gui *Gui) handleRebaseOntoBranch(selectedBranchName string) error {
 		return err
 	}
 
-	checkedOutBranch := gui.getCheckedOutBranch().Name
+	checkedOutBranch := gui.GetCheckedOutBranch().Name
 	if selectedBranchName == checkedOutBranch {
 		return gui.CreateErrorPanel(gui.Tr.CantRebaseOntoSelf)
 	}

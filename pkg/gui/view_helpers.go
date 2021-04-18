@@ -126,9 +126,9 @@ func (gui *Gui) RefreshSidePanels(options RefreshOptions) error {
 			wg.Add(1)
 			func() {
 				if options.Mode == ASYNC {
-					go utils.Safe(func() { _ = gui.refreshFilesAndSubmodules() })
+					go utils.Safe(func() { _ = gui.RefreshFilesAndSubmodules() })
 				} else {
-					_ = gui.refreshFilesAndSubmodules()
+					_ = gui.RefreshFilesAndSubmodules()
 				}
 				wg.Done()
 			}()
@@ -214,7 +214,7 @@ func (gui *Gui) setViewContent(v *gocui.View, s string) {
 }
 
 // renderString resets the origin of a view and sets its content
-func (gui *Gui) renderString(view *gocui.View, s string) {
+func (gui *Gui) RenderString(view *gocui.View, s string) {
 	gui.g.Update(func(*gocui.Gui) error {
 		return gui.renderStringSync(view, s)
 	})
@@ -241,7 +241,7 @@ func (gui *Gui) optionsMapToString(optionsMap map[string]string) string {
 }
 
 func (gui *Gui) renderOptionsMap(optionsMap map[string]string) {
-	gui.renderString(gui.Views.Options, gui.optionsMapToString(optionsMap))
+	gui.RenderString(gui.Views.Options, gui.optionsMapToString(optionsMap))
 }
 
 func (gui *Gui) trimmedContent(v *gocui.View) string {
@@ -315,6 +315,12 @@ func (gui *Gui) renderDisplayStrings(v *gocui.View, displayStrings [][]string) {
 		v.Clear()
 		fmt.Fprint(v, list)
 		return nil
+	})
+}
+
+func (gui *Gui) OnMainThread(f func() error) {
+	gui.g.Update(func(g *gocui.Gui) error {
+		return f()
 	})
 }
 
