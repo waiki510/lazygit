@@ -207,7 +207,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 	config := gui.Config.GetUserConfig().Keybinding
 
 	tagsController := NewTagsController(gui)
-	filesController := NewFilesController(gui)
 	globalController := NewGlobalController(gui)
 
 	bindings := []*Binding{
@@ -377,150 +376,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Key:         gui.getKey(config.Universal.PullFiles),
 			Handler:     globalController.HandlePullFiles,
 			Description: gui.Tr.LcPull,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.CommitChanges),
-			Handler:     filesController.HandleCommitPress,
-			Description: gui.Tr.CommitChanges,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.CommitChangesWithoutHook),
-			Handler:     filesController.HandleWIPCommitPress,
-			Description: gui.Tr.LcCommitChangesWithoutHook,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.AmendLastCommit),
-			Handler:     filesController.HandleAmendCommitPress,
-			Description: gui.Tr.AmendLastCommit,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.CommitChangesWithEditor),
-			Handler:     filesController.HandleCommitEditorPress,
-			Description: gui.Tr.CommitChangesWithEditor,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.Select),
-			Handler:     filesController.HandleFilePress,
-			Description: gui.Tr.LcToggleStaged,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.Remove),
-			Handler:     gui.handleCreateDiscardMenu,
-			Description: gui.Tr.LcViewDiscardOptions,
-			OpensMenu:   true,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.Edit),
-			Handler:     filesController.HandleFileEdit,
-			Description: gui.Tr.LcEditFile,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.OpenFile),
-			Handler:     filesController.HandleFileOpen,
-			Description: gui.Tr.LcOpenFile,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.IgnoreFile),
-			Handler:     filesController.HandleIgnoreFile,
-			Description: gui.Tr.LcIgnoreFile,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.RefreshFiles),
-			Handler:     filesController.HandleRefreshFiles,
-			Description: gui.Tr.LcRefreshFiles,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.StashAllChanges),
-			Handler:     filesController.HandleStashChanges,
-			Description: gui.Tr.LcStashAllChanges,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.ViewStashOptions),
-			Handler:     filesController.HandleCreateStashMenu,
-			Description: gui.Tr.LcViewStashOptions,
-			OpensMenu:   true,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.ToggleStagedAll),
-			Handler:     filesController.HandleStageAll,
-			Description: gui.Tr.LcToggleStagedAll,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.ViewResetOptions),
-			Handler:     filesController.HandleCreateResetMenu,
-			Description: gui.Tr.LcViewResetOptions,
-			OpensMenu:   true,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.GoInto),
-			Handler:     filesController.HandleEnterFile,
-			Description: gui.Tr.FileEnter,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.Fetch),
-			Handler:     filesController.HandleGitFetch,
-			Description: gui.Tr.LcFetch,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.CopyToClipboard),
-			Handler:     filesController.HandleCopyPathToClipboard,
-			Description: gui.Tr.LcCopyFileNameToClipboard,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Commits.ViewResetOptions),
-			Handler:     filesController.HandleCreateResetToUpstreamMenu,
-			Description: gui.Tr.LcViewResetToUpstreamOptions,
-			OpensMenu:   true,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.ToggleTreeView),
-			Handler:     filesController.HandleToggleFileTreeView,
-			Description: gui.Tr.LcToggleTreeView,
-		},
-		{
-			ViewName:    "files",
-			Contexts:    []string{string(FILES_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.OpenMergeTool),
-			Handler:     filesController.HandleOpenMergeTool,
-			Description: gui.Tr.LcOpenMergeTool,
 		},
 		{
 			ViewName:    "",
@@ -1288,20 +1143,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 		{
 			ViewName:    "main",
-			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.Edit),
-			Handler:     filesController.HandleFileEdit,
-			Description: gui.Tr.LcEditFile,
-		},
-		{
-			ViewName:    "main",
-			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Universal.OpenFile),
-			Handler:     filesController.HandleFileOpen,
-			Description: gui.Tr.LcOpenFile,
-		},
-		{
-			ViewName:    "main",
 			Contexts:    []string{string(MAIN_PATCH_BUILDING_CONTEXT_KEY), string(MAIN_STAGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.NextPage),
 			Modifier:    gocui.ModNone,
@@ -1403,38 +1244,10 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 		{
 			ViewName:    "main",
-			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.CommitChanges),
-			Handler:     filesController.HandleCommitPress,
-			Description: gui.Tr.CommitChanges,
-		},
-		{
-			ViewName:    "main",
-			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.CommitChangesWithoutHook),
-			Handler:     filesController.HandleWIPCommitPress,
-			Description: gui.Tr.LcCommitChangesWithoutHook,
-		},
-		{
-			ViewName:    "main",
-			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.CommitChangesWithEditor),
-			Handler:     filesController.HandleCommitEditorPress,
-			Description: gui.Tr.CommitChangesWithEditor,
-		},
-		{
-			ViewName:    "main",
 			Contexts:    []string{string(MAIN_MERGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Universal.Return),
 			Handler:     gui.handleEscapeMerge,
 			Description: gui.Tr.ReturnToFilesPanel,
-		},
-		{
-			ViewName:    "main",
-			Contexts:    []string{string(MAIN_MERGING_CONTEXT_KEY)},
-			Key:         gui.getKey(config.Files.OpenMergeTool),
-			Handler:     filesController.HandleOpenMergeTool,
-			Description: gui.Tr.LcOpenMergeTool,
 		},
 		{
 			ViewName:    "main",
@@ -1773,6 +1586,8 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Handler:  gui.handleFocusCommandLog,
 		},
 	}
+
+	bindings = append(bindings, NewFilesController(gui).getKeyBindings(config, gui.getKey)...)
 
 	for _, viewName := range []string{"status", "branches", "files", "commits", "commitFiles", "stash", "menu"} {
 		bindings = append(bindings, []*Binding{

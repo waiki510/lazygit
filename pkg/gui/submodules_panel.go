@@ -90,12 +90,6 @@ func (gui *Gui) removeSubmodule(submodule *models.SubmoduleConfig) error {
 	})
 }
 
-func (gui *Gui) handleResetSubmodule(submodule *models.SubmoduleConfig) error {
-	return gui.WithWaitingStatus(gui.Tr.LcResettingSubmoduleStatus, func() error {
-		return gui.resetSubmodule(submodule)
-	})
-}
-
 func (gui *Gui) fileForSubmodule(submodule *models.SubmoduleConfig) *models.File {
 	for _, file := range gui.State.FileManager.GetAllFiles() {
 		if file.IsSubmodule([]*models.SubmoduleConfig{submodule}) {
@@ -106,7 +100,7 @@ func (gui *Gui) fileForSubmodule(submodule *models.SubmoduleConfig) *models.File
 	return nil
 }
 
-func (gui *Gui) resetSubmodule(submodule *models.SubmoduleConfig) error {
+func (gui *Gui) ResetSubmodule(submodule *models.SubmoduleConfig) error {
 	gitCommand := gui.GitCommand.WithSpan(gui.Tr.Spans.ResetSubmodule)
 
 	file := gui.fileForSubmodule(submodule)
@@ -196,7 +190,7 @@ func (gui *Gui) handleResetRemoveSubmodule(submodule *models.SubmoduleConfig) er
 		{
 			displayString: gui.Tr.LcSubmoduleStashAndReset,
 			onPress: func() error {
-				return gui.resetSubmodule(submodule)
+				return gui.ResetSubmodule(submodule)
 			},
 		},
 		{

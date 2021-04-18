@@ -1,6 +1,6 @@
 package gui
 
-func (gui *Gui) handleCreateDiscardMenu() error {
+func (gui *FilesController) HandleCreateDiscardMenu() error {
 	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
@@ -43,7 +43,9 @@ func (gui *Gui) handleCreateDiscardMenu() error {
 				{
 					displayString: gui.Tr.LcSubmoduleStashAndReset,
 					onPress: func() error {
-						return gui.handleResetSubmodule(submodule)
+						return gui.WithWaitingStatus(gui.Tr.LcResettingSubmoduleStatus, func() error {
+							return gui.ResetSubmodule(submodule)
+						})
 					},
 				},
 			}

@@ -42,6 +42,10 @@ type IGuiFileChanges interface {
 	RefreshFilesAndSubmodules() error
 }
 
+type IGuiSubmodules interface {
+	ResetSubmodule(submodule *models.SubmoduleConfig) error
+}
+
 type IGuiFiles interface {
 	EditFile(path string) error
 	OpenFile(path string) error
@@ -57,6 +61,7 @@ type IGuiFilesController interface {
 	IGuiFiles
 	IGuiFetching
 	IGuiSideContext
+	IGuiSubmodules
 }
 
 type FilesController struct {
@@ -68,9 +73,196 @@ func NewFilesController(gui *Gui) *FilesController {
 	return &FilesController{IGuiFilesController: gui, GuiCore: gui.GuiCore}
 }
 
-// func (gui *FilesController) getKeyBindings() []*Binding {
-
-// }
+func (gui *FilesController) getKeyBindings(keybindingsConfig config.KeybindingConfig, getKey func(string) interface{}) []*Binding {
+	return []*Binding{
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.CommitChanges),
+			Handler:     gui.HandleCommitPress,
+			Description: gui.Tr.CommitChanges,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.CommitChangesWithoutHook),
+			Handler:     gui.HandleWIPCommitPress,
+			Description: gui.Tr.LcCommitChangesWithoutHook,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.AmendLastCommit),
+			Handler:     gui.HandleAmendCommitPress,
+			Description: gui.Tr.AmendLastCommit,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.CommitChangesWithEditor),
+			Handler:     gui.HandleCommitEditorPress,
+			Description: gui.Tr.CommitChangesWithEditor,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.Select),
+			Handler:     gui.HandleFilePress,
+			Description: gui.Tr.LcToggleStaged,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.Remove),
+			Handler:     gui.HandleCreateDiscardMenu,
+			Description: gui.Tr.LcViewDiscardOptions,
+			OpensMenu:   true,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.Edit),
+			Handler:     gui.HandleFileEdit,
+			Description: gui.Tr.LcEditFile,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.OpenFile),
+			Handler:     gui.HandleFileOpen,
+			Description: gui.Tr.LcOpenFile,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.IgnoreFile),
+			Handler:     gui.HandleIgnoreFile,
+			Description: gui.Tr.LcIgnoreFile,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.RefreshFiles),
+			Handler:     gui.HandleRefreshFiles,
+			Description: gui.Tr.LcRefreshFiles,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.StashAllChanges),
+			Handler:     gui.HandleStashChanges,
+			Description: gui.Tr.LcStashAllChanges,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.ViewStashOptions),
+			Handler:     gui.HandleCreateStashMenu,
+			Description: gui.Tr.LcViewStashOptions,
+			OpensMenu:   true,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.ToggleStagedAll),
+			Handler:     gui.HandleStageAll,
+			Description: gui.Tr.LcToggleStagedAll,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.ViewResetOptions),
+			Handler:     gui.HandleCreateResetMenu,
+			Description: gui.Tr.LcViewResetOptions,
+			OpensMenu:   true,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.GoInto),
+			Handler:     gui.HandleEnterFile,
+			Description: gui.Tr.FileEnter,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.Fetch),
+			Handler:     gui.HandleGitFetch,
+			Description: gui.Tr.LcFetch,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.CopyToClipboard),
+			Handler:     gui.HandleCopyPathToClipboard,
+			Description: gui.Tr.LcCopyFileNameToClipboard,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Commits.ViewResetOptions),
+			Handler:     gui.HandleCreateResetToUpstreamMenu,
+			Description: gui.Tr.LcViewResetToUpstreamOptions,
+			OpensMenu:   true,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.ToggleTreeView),
+			Handler:     gui.HandleToggleFileTreeView,
+			Description: gui.Tr.LcToggleTreeView,
+		},
+		{
+			ViewName:    "files",
+			Contexts:    []string{string(FILES_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.OpenMergeTool),
+			Handler:     gui.HandleOpenMergeTool,
+			Description: gui.Tr.LcOpenMergeTool,
+		},
+		{
+			ViewName:    "main",
+			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.CommitChanges),
+			Handler:     gui.HandleCommitPress,
+			Description: gui.Tr.CommitChanges,
+		},
+		{
+			ViewName:    "main",
+			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.CommitChangesWithoutHook),
+			Handler:     gui.HandleWIPCommitPress,
+			Description: gui.Tr.LcCommitChangesWithoutHook,
+		},
+		{
+			ViewName:    "main",
+			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.CommitChangesWithEditor),
+			Handler:     gui.HandleCommitEditorPress,
+			Description: gui.Tr.CommitChangesWithEditor,
+		},
+		{
+			ViewName:    "main",
+			Contexts:    []string{string(MAIN_MERGING_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Files.OpenMergeTool),
+			Handler:     gui.HandleOpenMergeTool,
+			Description: gui.Tr.LcOpenMergeTool,
+		},
+		{
+			ViewName:    "main",
+			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.Edit),
+			Handler:     gui.HandleFileEdit,
+			Description: gui.Tr.LcEditFile,
+		},
+		{
+			ViewName:    "main",
+			Contexts:    []string{string(MAIN_STAGING_CONTEXT_KEY)},
+			Key:         getKey(keybindingsConfig.Universal.OpenFile),
+			Handler:     gui.HandleFileOpen,
+			Description: gui.Tr.LcOpenFile,
+		},
+	}
+}
 
 func (gui *FilesController) HandleEnterFile() error {
 	return gui.EnterFile(false, -1)
