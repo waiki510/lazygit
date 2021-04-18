@@ -1,21 +1,11 @@
 package gui
 
 import (
-	"github.com/jesseduffield/lazygit/pkg/commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
-	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
-	"github.com/jesseduffield/lazygit/pkg/i18n"
 	"github.com/jesseduffield/lazygit/pkg/utils"
-	"github.com/sirupsen/logrus"
 )
 
 type IGuiCore interface {
-	GetGitCommand() *commands.GitCommand
-	GetOSCommand() *oscommands.OSCommand
-	GetTr() *i18n.TranslationSet
-	GetState() *GuiState
-	GetLog() *logrus.Entry
-
 	Prompt(PromptOpts) error
 	Ask(AskOpts) error
 	WithWaitingStatus(message string, f func() error) error
@@ -44,27 +34,28 @@ type IGui interface {
 
 type TagsController struct {
 	IGui
+	*GuiCore
 }
 
-func NewTagsController(gui IGui) *TagsController {
-	return &TagsController{IGui: gui}
+func NewTagsController(gui *Gui) *TagsController {
+	return &TagsController{IGui: gui, GuiCore: gui.GuiCore}
 }
 
 func (gui *TagsController) HandleCreate() error {
 	return gui.Prompt(PromptOpts{
-		Title: gui.GetTr().CreateTagTitle,
+		Title: gui.Tr.CreateTagTitle,
 		HandleConfirm: func(tagName string) error {
 			// leaving commit SHA blank so that we're just creating the tag for the current commit
-			if err := gui.GetGitCommand().WithSpan(gui.GetTr().Spans.CreateLightweightTag).CreateLightweightTag(tagName, ""); err != nil {
+			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.CreateLightweightTag).CreateLightweightTag(tagName, ""); err != nil {
 				return gui.SurfaceError(err)
 			}
 			return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{COMMITS, TAGS}, Then: func() {
 				// find the index of the tag and set that as the currently selected line
-				for i, tag := range gui.GetState().Tags {
+				for i, tag := range gui.State.Tags {
 					if tag.Name == tagName {
-						gui.GetState().Panels.Tags.SelectedLineIdx = i
-						if err := gui.GetState().Contexts.Tags.HandleRender(); err != nil {
-							gui.GetLog().Error(err)
+						gui.State.Panels.Tags.SelectedLineIdx = i
+						if err := gui.State.Contexts.Tags.HandleRender(); err != nil {
+							gui.Log.Error(err)
 						}
 
 						return
@@ -84,8 +75,8 @@ func (gui *TagsController) HandleSelect() error {
 	if tag == nil {
 		task = NewRenderStringTask("No tags")
 	} else {
-		cmd := gui.GetOSCommand().ExecutableFromString(
-			gui.GetGitCommand().GetBranchGraphCmdStr(tag.Name),
+		cmd := gui.OSCommand.ExecutableFromString(
+			gui.GitCommand.GetBranchGraphCmdStr(tag.Name),
 		)
 		task = NewRunCommandTask(cmd)
 	}
@@ -110,25 +101,25 @@ func (gui *TagsController) WithSelectedTag(f func(tag *models.Tag) error) func()
 }
 
 func (gui *TagsController) HandleCheckout(tag *models.Tag) error {
-	if err := gui.HandleCheckoutRef(tag.Name, HandleCheckoutRefOptions{Span: gui.GetTr().Spans.CheckoutTag}); err != nil {
+	if err := gui.HandleCheckoutRef(tag.Name, HandleCheckoutRefOptions{Span: gui.Tr.Spans.CheckoutTag}); err != nil {
 		return err
 	}
-	return gui.PushContext(gui.GetState().Contexts.Branches)
+	return gui.PushContext(gui.State.Contexts.Branches)
 }
 
 func (gui *TagsController) HandleDelete(tag *models.Tag) error {
 	prompt := utils.ResolvePlaceholderString(
-		gui.GetTr().DeleteTagPrompt,
+		gui.Tr.DeleteTagPrompt,
 		map[string]string{
 			"tagName": tag.Name,
 		},
 	)
 
 	return gui.Ask(AskOpts{
-		Title:  gui.GetTr().DeleteTagTitle,
+		Title:  gui.Tr.DeleteTagTitle,
 		Prompt: prompt,
 		HandleConfirm: func() error {
-			if err := gui.GetGitCommand().WithSpan(gui.GetTr().Spans.DeleteTag).DeleteTag(tag.Name); err != nil {
+			if err := gui.GitCommand.WithSpan(gui.Tr.Spans.DeleteTag).DeleteTag(tag.Name); err != nil {
 				return gui.SurfaceError(err)
 			}
 			return gui.RefreshSidePanels(RefreshOptions{Mode: ASYNC, Scope: []RefreshableView{COMMITS, TAGS}})
@@ -138,7 +129,7 @@ func (gui *TagsController) HandleDelete(tag *models.Tag) error {
 
 func (gui *TagsController) HandlePush(tag *models.Tag) error {
 	title := utils.ResolvePlaceholderString(
-		gui.GetTr().PushTagTitle,
+		gui.Tr.PushTagTitle,
 		map[string]string{
 			"tagName": tag.Name,
 		},
@@ -148,8 +139,8 @@ func (gui *TagsController) HandlePush(tag *models.Tag) error {
 		Title:          title,
 		InitialContent: "origin",
 		HandleConfirm: func(response string) error {
-			return gui.WithWaitingStatus(gui.GetTr().PushingTagStatus, func() error {
-				err := gui.GetGitCommand().WithSpan(gui.GetTr().Spans.PushTag).PushTag(response, tag.Name, gui.PromptUserForCredential)
+			return gui.WithWaitingStatus(gui.Tr.PushingTagStatus, func() error {
+				err := gui.GitCommand.WithSpan(gui.Tr.Spans.PushTag).PushTag(response, tag.Name, gui.PromptUserForCredential)
 				gui.HandleCredentialsPopup(err)
 
 				return nil

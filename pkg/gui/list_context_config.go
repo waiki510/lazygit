@@ -50,7 +50,7 @@ func (gui *Gui) filesListContext() *ListContext {
 			return mappedLines
 		},
 		SelectedItem: func() (ListItem, bool) {
-			item := gui.getSelectedFileNode()
+			item := gui.GetSelectedFileNode()
 			return item, item != nil
 		},
 	}

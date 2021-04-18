@@ -9,7 +9,7 @@ import (
 func (gui *Gui) refreshStagingPanel(forceSecondaryFocused bool, selectedLineIdx int, state *lBlPanelState) error {
 	gui.splitMainPanel(true)
 
-	file := gui.getSelectedFile()
+	file := gui.GetSelectedFile()
 	if file == nil || (!file.HasUnstagedChanges && !file.HasStagedChanges) {
 		return gui.handleStagingEscape()
 	}
@@ -125,7 +125,7 @@ func (gui *Gui) handleResetSelection() error {
 }
 
 func (gui *Gui) applySelection(reverse bool, state *lBlPanelState) error {
-	file := gui.getSelectedFile()
+	file := gui.GetSelectedFile()
 	if file == nil {
 		return nil
 	}

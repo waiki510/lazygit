@@ -207,6 +207,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 	config := gui.Config.GetUserConfig().Keybinding
 
 	tagsController := NewTagsController(gui)
+	// filesController := NewFilesController(gui)
 
 	bindings := []*Binding{
 		{
@@ -523,7 +524,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "files",
 			Contexts:    []string{string(FILES_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.OpenMergeTool),
-			Handler:     gui.handleOpenMergeTool,
+			Handler:     gui.HandleOpenMergeTool,
 			Description: gui.Tr.LcOpenMergeTool,
 		},
 		{
@@ -1431,7 +1432,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			ViewName:    "main",
 			Contexts:    []string{string(MAIN_MERGING_CONTEXT_KEY)},
 			Key:         gui.getKey(config.Files.OpenMergeTool),
-			Handler:     gui.handleOpenMergeTool,
+			Handler:     gui.HandleOpenMergeTool,
 			Description: gui.Tr.LcOpenMergeTool,
 		},
 		{

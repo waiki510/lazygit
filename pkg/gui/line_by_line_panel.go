@@ -314,7 +314,7 @@ func (gui *Gui) handleOpenFileAtLine() error {
 		case gui.State.Contexts.PatchBuilding.GetKey():
 			filename = gui.getSelectedCommitFileName()
 		case gui.State.Contexts.Staging.GetKey():
-			file := gui.getSelectedFile()
+			file := gui.GetSelectedFile()
 			if file == nil {
 				return nil
 			}

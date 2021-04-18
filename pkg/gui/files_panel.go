@@ -16,7 +16,7 @@ import (
 
 // list panel functions
 
-func (gui *Gui) getSelectedFileNode() *filetree.FileNode {
+func (gui *Gui) GetSelectedFileNode() *filetree.FileNode {
 	selectedLine := gui.State.Panels.Files.SelectedLineIdx
 	if selectedLine == -1 {
 		return nil
@@ -25,16 +25,16 @@ func (gui *Gui) getSelectedFileNode() *filetree.FileNode {
 	return gui.State.FileManager.GetItemAtIndex(selectedLine)
 }
 
-func (gui *Gui) getSelectedFile() *models.File {
-	node := gui.getSelectedFileNode()
+func (gui *Gui) GetSelectedFile() *models.File {
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
 	}
 	return node.File
 }
 
-func (gui *Gui) getSelectedPath() string {
-	node := gui.getSelectedFileNode()
+func (gui *Gui) GetSelectedPath() string {
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return ""
 	}
@@ -45,7 +45,7 @@ func (gui *Gui) getSelectedPath() string {
 func (gui *Gui) selectFile(alreadySelected bool) error {
 	gui.Views.Files.FocusPoint(0, gui.State.Panels.Files.SelectedLineIdx)
 
-	node := gui.getSelectedFileNode()
+	node := gui.GetSelectedFileNode()
 
 	if node == nil {
 		return gui.RefreshMainViews(RefreshMainOpts{
@@ -104,7 +104,7 @@ func (gui *Gui) refreshFilesAndSubmodules() error {
 		gui.Mutexes.RefreshingFilesMutex.Unlock()
 	}()
 
-	selectedPath := gui.getSelectedPath()
+	selectedPath := gui.GetSelectedPath()
 
 	if err := gui.refreshStateSubmoduleConfigs(); err != nil {
 		return err
@@ -126,7 +126,7 @@ func (gui *Gui) refreshFilesAndSubmodules() error {
 		}
 
 		if gui.currentContext().GetKey() == FILES_CONTEXT_KEY || (g.CurrentView() == gui.Views.Main && ContextKey(g.CurrentView().Context) == MAIN_MERGING_CONTEXT_KEY) {
-			newSelectedPath := gui.getSelectedPath()
+			newSelectedPath := gui.GetSelectedPath()
 			alreadySelected := selectedPath != "" && newSelectedPath == selectedPath
 			if err := gui.selectFile(alreadySelected); err != nil {
 				return err
@@ -164,7 +164,7 @@ func (gui *Gui) trackedFiles() []*models.File {
 }
 
 func (gui *Gui) stageSelectedFile() error {
-	file := gui.getSelectedFile()
+	file := gui.GetSelectedFile()
 	if file == nil {
 		return nil
 	}
@@ -177,7 +177,7 @@ func (gui *Gui) handleEnterFile() error {
 }
 
 func (gui *Gui) enterFile(forceSecondaryFocused bool, selectedLineIdx int) error {
-	node := gui.getSelectedFileNode()
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
 	}
@@ -206,7 +206,7 @@ func (gui *Gui) enterFile(forceSecondaryFocused bool, selectedLineIdx int) error
 }
 
 func (gui *Gui) handleFilePress() error {
-	node := gui.getSelectedFileNode()
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
 	}
@@ -285,7 +285,7 @@ func (gui *Gui) handleStageAll() error {
 }
 
 func (gui *Gui) handleIgnoreFile() error {
-	node := gui.getSelectedFileNode()
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
 	}
@@ -485,7 +485,7 @@ func (gui *Gui) editFile(filename string) error {
 }
 
 func (gui *Gui) handleFileEdit() error {
-	node := gui.getSelectedFileNode()
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
 	}
@@ -498,7 +498,7 @@ func (gui *Gui) handleFileEdit() error {
 }
 
 func (gui *Gui) handleFileOpen() error {
-	node := gui.getSelectedFileNode()
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
 	}
@@ -517,7 +517,7 @@ func (gui *Gui) refreshStateFiles() error {
 	// when we refresh, go looking for a matching name
 	// move the cursor to there.
 
-	selectedNode := gui.getSelectedFileNode()
+	selectedNode := gui.GetSelectedFileNode()
 
 	prevNodes := gui.State.FileManager.GetAllItems()
 	prevSelectedLineIdx := gui.State.Panels.Files.SelectedLineIdx
@@ -782,7 +782,7 @@ func (gui *Gui) pushFiles() error {
 }
 
 func (gui *Gui) handleSwitchToMerge() error {
-	file := gui.getSelectedFile()
+	file := gui.GetSelectedFile()
 	if file == nil {
 		return nil
 	}
@@ -850,7 +850,7 @@ func (gui *Gui) handleCreateResetToUpstreamMenu() error {
 }
 
 func (gui *Gui) handleToggleDirCollapsed() error {
-	node := gui.getSelectedFileNode()
+	node := gui.GetSelectedFileNode()
 	if node == nil {
 		return nil
 	}
@@ -866,7 +866,7 @@ func (gui *Gui) handleToggleDirCollapsed() error {
 
 func (gui *Gui) handleToggleFileTreeView() error {
 	// get path of currently selected file
-	path := gui.getSelectedPath()
+	path := gui.GetSelectedPath()
 
 	gui.State.FileManager.ToggleShowTree()
 
@@ -891,7 +891,7 @@ func (gui *Gui) handleToggleFileTreeView() error {
 	return nil
 }
 
-func (gui *Gui) handleOpenMergeTool() error {
+func (gui *Gui) HandleOpenMergeTool() error {
 	return gui.Ask(AskOpts{
 		Title:  gui.Tr.MergeToolTitle,
 		Prompt: gui.Tr.MergeToolPrompt,

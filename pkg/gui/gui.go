@@ -63,21 +63,27 @@ func NewContextManager(initialContext Context) ContextManager {
 
 type Repo string
 
-// Gui wraps the gocui Gui object which handles rendering and events
-type Gui struct {
-	g          *gocui.Gui
-	Log        *logrus.Entry
+// splitting this out as its own struct so that controllers can access it directly.
+// Everything else will go through an interface
+type GuiCore struct {
 	GitCommand *commands.GitCommand
 	OSCommand  *oscommands.OSCommand
-
+	Tr         *i18n.TranslationSet
 	// this is the state of the GUI for the current repo
-	State *GuiState
+	State  *GuiState
+	Log    *logrus.Entry
+	Config config.AppConfigurer
+}
+
+// Gui wraps the gocui Gui object which handles rendering and events
+type Gui struct {
+	*GuiCore
+
+	g *gocui.Gui
 
 	// this is a mapping of repos to gui states, so that we can restore the original
 	// gui state when returning from a subrepo
 	RepoStateMap         map[Repo]*GuiState
-	Config               config.AppConfigurer
-	Tr                   *i18n.TranslationSet
 	Updater              *updates.Updater
 	statusManager        *statusManager
 	credentials          credentials
@@ -460,11 +466,13 @@ func (gui *Gui) resetState(filterPath string, reuseState bool) {
 // NewGui builds a new gui handler
 func NewGui(log *logrus.Entry, gitCommand *commands.GitCommand, oSCommand *oscommands.OSCommand, tr *i18n.TranslationSet, config config.AppConfigurer, updater *updates.Updater, filterPath string, showRecentRepos bool) (*Gui, error) {
 	gui := &Gui{
-		Log:                  log,
-		GitCommand:           gitCommand,
-		OSCommand:            oSCommand,
-		Config:               config,
-		Tr:                   tr,
+		GuiCore: &GuiCore{
+			Log:        log,
+			GitCommand: gitCommand,
+			OSCommand:  oSCommand,
+			Config:     config,
+			Tr:         tr,
+		},
 		Updater:              updater,
 		statusManager:        &statusManager{},
 		viewBufferManagerMap: map[string]*tasks.ViewBufferManager{},

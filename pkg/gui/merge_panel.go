@@ -56,7 +56,7 @@ func (gui *Gui) handleSelectPrevConflict() error {
 }
 
 func (gui *Gui) pushFileSnapshot() error {
-	gitFile := gui.getSelectedFile()
+	gitFile := gui.GetSelectedFile()
 	if gitFile == nil {
 		return nil
 	}
@@ -73,7 +73,7 @@ func (gui *Gui) handlePopFileSnapshot() error {
 		return nil
 	}
 	prevContent := gui.State.Panels.Merging.EditHistory.Pop().(string)
-	gitFile := gui.getSelectedFile()
+	gitFile := gui.GetSelectedFile()
 	if gitFile == nil {
 		return nil
 	}
@@ -146,7 +146,7 @@ func (gui *Gui) getCurrentConflict() *commands.Conflict {
 }
 
 func (gui *Gui) resolveConflict(conflict commands.Conflict, selection mergeconflicts.Selection) error {
-	gitFile := gui.getSelectedFile()
+	gitFile := gui.GetSelectedFile()
 	if gitFile == nil {
 		return nil
 	}
@@ -223,7 +223,7 @@ func (gui *Gui) refreshMergePanel() error {
 }
 
 func (gui *Gui) catSelectedFile() (string, error) {
-	item := gui.getSelectedFile()
+	item := gui.GetSelectedFile()
 	if item == nil {
 		return "", errors.New(gui.Tr.NoFilesDisplay)
 	}
@@ -334,7 +334,7 @@ func (gui *Gui) canScrollMergePanel() bool {
 		return false
 	}
 
-	file := gui.getSelectedFile()
+	file := gui.GetSelectedFile()
 	if file == nil {
 		return false
 	}
