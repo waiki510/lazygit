@@ -112,22 +112,6 @@ func (gui *Gui) stashDo(method string) error {
 	return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{STASH, FILES}})
 }
 
-func (gui *Gui) handleStashSave(stashFunc func(message string) error) error {
-	if len(gui.trackedFiles()) == 0 && len(gui.stagedFiles()) == 0 {
-		return gui.CreateErrorPanel(gui.Tr.NoTrackedStagedFilesStash)
-	}
-
-	return gui.Prompt(PromptOpts{
-		Title: gui.Tr.StashChanges,
-		HandleConfirm: func(stashComment string) error {
-			if err := stashFunc(stashComment); err != nil {
-				return gui.SurfaceError(err)
-			}
-			return gui.RefreshSidePanels(RefreshOptions{Scope: []RefreshableView{STASH, FILES}})
-		},
-	})
-}
-
 func (gui *Gui) handleViewStashFiles() error {
 	stashEntry := gui.getSelectedStashEntry()
 	if stashEntry == nil {

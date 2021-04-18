@@ -119,7 +119,7 @@ func (gui *Gui) handleOpenOldCommitFile() error {
 		return nil
 	}
 
-	return gui.openFile(node.GetPath())
+	return gui.OpenFile(node.GetPath())
 }
 
 func (gui *Gui) handleEditCommitFile() error {
@@ -132,7 +132,7 @@ func (gui *Gui) handleEditCommitFile() error {
 		return gui.CreateErrorPanel(gui.Tr.ErrCannotEditDirectory)
 	}
 
-	return gui.editFile(node.GetPath())
+	return gui.EditFile(node.GetPath())
 }
 
 func (gui *Gui) handleToggleFileForPatch() error {

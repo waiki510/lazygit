@@ -307,6 +307,24 @@ func (gui *Gui) handleCompleteMerge() error {
 	return gui.handleEscapeMerge()
 }
 
+func (gui *Gui) stageSelectedFile() error {
+	file := gui.GetSelectedFile()
+	if file == nil {
+		return nil
+	}
+
+	return gui.GitCommand.StageFile(file.Name)
+}
+
+func (gui *Gui) anyFilesWithMergeConflicts() bool {
+	for _, file := range gui.State.FileManager.GetAllFiles() {
+		if file.HasMergeConflicts {
+			return true
+		}
+	}
+	return false
+}
+
 // promptToContinueRebase asks the user if they want to continue the rebase/merge that's in progress
 func (gui *Gui) promptToContinueRebase() error {
 	gui.takeOverMergeConflictScrolling()

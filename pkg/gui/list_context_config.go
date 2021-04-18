@@ -37,7 +37,7 @@ func (gui *Gui) filesListContext() *ListContext {
 		GetItemsLength:             func() int { return gui.State.FileManager.GetItemsLength() },
 		GetPanelState:              func() IListPanelState { return gui.State.Panels.Files },
 		OnFocus:                    gui.focusAndSelectFile,
-		OnClickSelectedItem:        gui.handleFilePress,
+		OnClickSelectedItem:        gui.HandleFilePress,
 		Gui:                        gui,
 		ResetMainViewOriginOnFocus: false,
 		GetDisplayStrings: func() [][]string {

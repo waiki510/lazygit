@@ -166,7 +166,7 @@ func (gui *Gui) handleMouseDownMain() error {
 		// set filename, set primary/secondary selected, set line number, then switch context
 		// I'll need to know it was changed though.
 		// Could I pass something along to the context change?
-		return gui.enterFile(false, gui.Views.Main.SelectedLineIdx())
+		return gui.EnterFile(false, gui.Views.Main.SelectedLineIdx())
 	case gui.State.Contexts.CommitFiles:
 		return gui.enterCommitFile(gui.Views.Main.SelectedLineIdx())
 	}
@@ -181,7 +181,7 @@ func (gui *Gui) handleMouseDownSecondary() error {
 
 	switch gui.g.CurrentView() {
 	case gui.Views.Files:
-		return gui.enterFile(true, gui.Views.Secondary.SelectedLineIdx())
+		return gui.EnterFile(true, gui.Views.Secondary.SelectedLineIdx())
 	}
 
 	return nil

@@ -124,12 +124,12 @@ func (gui *Gui) handleStatusSelect() error {
 }
 
 func (gui *Gui) handleOpenConfig() error {
-	return gui.openFile(gui.Config.GetUserConfigPath())
+	return gui.OpenFile(gui.Config.GetUserConfigPath())
 }
 
 func (gui *Gui) handleEditConfig() error {
 	filename := gui.Config.GetUserConfigPath()
-	return gui.editFile(filename)
+	return gui.EditFile(filename)
 }
 
 func lazygitTitle() string {
