@@ -66,7 +66,12 @@ func (gui *Gui) branchesListContext() *ListContext {
 		OnFocus:        gui.handleBranchSelect,
 		Gui:            gui,
 		GetDisplayStrings: func() [][]string {
-			return presentation.GetBranchListDisplayStrings(gui.State.Branches, gui.State.ScreenMode != SCREEN_NORMAL, gui.State.Modes.Diffing.Ref)
+			return presentation.GetBranchListDisplayStrings(
+				gui.State.Branches,
+				gui.State.ScreenMode != SCREEN_NORMAL,
+				gui.State.Modes.Diffing.Ref,
+				gui.State.BranchesWithGithubPullRequests,
+			)
 		},
 		SelectedItem: func() (ListItem, bool) {
 			item := gui.getSelectedBranch()

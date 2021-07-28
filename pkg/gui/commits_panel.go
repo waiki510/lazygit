@@ -115,12 +115,23 @@ func (gui *Gui) writeLinesToViewAtPos(view *gocui.View, y int, lines []string) {
 func (gui *Gui) refreshReflogCommitsConsideringStartup() {
 	switch gui.State.StartupStage {
 	case INITIAL:
+		var wg sync.WaitGroup
+		wg.Add(1)
+
 		go utils.Safe(func() {
 			_ = gui.refreshReflogCommits()
 			gui.refreshBranches()
 			gui.State.StartupStage = COMPLETE
+			wg.Done()
 		})
-
+		go utils.Safe(func() {
+			// The github cli can be quite slow so we load the github PRs sparately
+			gui.refreshGithubPullRequests()
+			wg.Wait()
+			gui.State.BranchesWithGithubPullRequests = gui.GitCommand.InjectGithubPullRequests(gui.GitCommand.GithubRecentPRs, gui.State.Branches)
+			_ = gui.postRefreshUpdate(gui.State.Contexts.Branches)
+			gui.refreshStatus()
+		})
 	case COMPLETE:
 		_ = gui.refreshReflogCommits()
 	}

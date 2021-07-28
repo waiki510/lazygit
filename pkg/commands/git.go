@@ -12,6 +12,7 @@ import (
 
 	gogit "github.com/jesseduffield/go-git/v5"
 	"github.com/jesseduffield/lazygit/pkg/commands/git_config"
+	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
 	"github.com/jesseduffield/lazygit/pkg/commands/patch"
 	"github.com/jesseduffield/lazygit/pkg/config"
@@ -46,6 +47,7 @@ type GitCommand struct {
 	// Coincidentally at the moment it's the same view that OnRunCommand logs to
 	// but that need not always be the case.
 	GetCmdWriter func() io.Writer
+	GithubRecentPRs map[string]models.GithubPullRequest
 }
 
 // NewGitCommand it runs git commands
