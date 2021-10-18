@@ -42,24 +42,24 @@ func getBranchDisplayStrings(b *models.Branch, fullDescription bool, diffed, sho
 		recencyColor = style.FgGreen
 	}
 
-	res := []string{utils.ColoredString(b.Recency, recencyColor)}
+	res := []string{recencyColor.Sprint(b.Recency)}
 	if showGithub {
 		if b.PR != nil {
-			colour := color.FgMagenta // = state MERGED
+			colour := style.FgMagenta // = state MERGED
 			switch b.PR.State {
 			case "OPEN":
-				colour = color.FgGreen
+				colour = style.FgGreen
 			case "CLOSED":
-				colour = color.FgRed
+				colour = style.FgRed
 			}
-			res = append(res, utils.ColoredString("#"+strconv.Itoa(b.PR.Number), colour))
+			res = append(res, colour.Sprint("#"+strconv.Itoa(b.PR.Number)))
 		} else {
 			res = append(res, "")
 		}
 	}
 
 	if fullDescription {
-		return append(res, coloredName, utils.ColoredString(b.UpstreamName, color.FgYellow))
+		return append(res, coloredName, style.FgYellow.Sprint(b.UpstreamName))
 	}
 	return append(res, coloredName)
 }
