@@ -45,6 +45,8 @@ func (gui *Gui) handleCommitSelect() error {
 		task = NewRunPtyTask(cmd)
 	}
 
+	gui.Log.Warn(commit.Parents)
+
 	return gui.refreshMainViews(refreshMainOpts{
 		main: &viewUpdateOpts{
 			title: "Patch",
