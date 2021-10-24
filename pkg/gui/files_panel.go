@@ -886,28 +886,11 @@ func (gui *Gui) anyFilesWithMergeConflicts() bool {
 }
 
 func (gui *Gui) handleCustomCommand() error {
-	return gui.prompt(promptOpts{
-		title:               gui.Tr.CustomCommand,
-		findSuggestionsFunc: gui.getCustomCommandsHistorySuggestionsFunc(),
-		handleConfirm: func(command string) error {
-			gui.Config.GetAppState().CustomCommandsHistory = utils.Limit(
-				utils.Uniq(
-					append(gui.Config.GetAppState().CustomCommandsHistory, command),
-				),
-				1000,
-			)
-
-			err := gui.Config.SaveAppState()
-			if err != nil {
-				gui.Log.Error(err)
-			}
-
-			gui.OnRunCommand(oscommands.NewCmdLogEntry(command, gui.Tr.Spans.CustomCommand, true))
-			return gui.runSubprocessWithSuspenseAndRefresh(
-				gui.OSCommand.PrepareShellSubProcess(command),
-			)
-		},
+	gui.Views.Commits.WriteFrom(0, 10, "a\n\x1b[K\n\x1b[Kc\n\x1b[Kd")
+	gui.g.Update(func(*gocui.Gui) error {
+		return nil
 	})
+	return nil
 }
 
 func (gui *Gui) handleCreateStashMenu() error {

@@ -752,6 +752,18 @@ func (v *View) rewind() {
 	}
 }
 
+func (v *View) WriteFrom(x int, y int, content string) {
+	owx := v.wx
+	owy := v.wy
+	v.wx = x
+	v.wy = y
+
+	v.writeRunes([]rune(content))
+	// assuming we haven't appended new lines
+	v.wx = owx
+	v.wy = owy
+}
+
 func containsUpcaseChar(str string) bool {
 	for _, ch := range str {
 		if unicode.IsUpper(ch) {
