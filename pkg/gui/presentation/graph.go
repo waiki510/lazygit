@@ -1,6 +1,7 @@
 package presentation
 
 import (
+	"math/rand"
 	"os"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
@@ -19,7 +20,7 @@ func renderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) 
 
 	// unlikely to have merges 10 levels deep
 	paths := make([]Path, 0, 10)
-	paths = append(paths, Path{from: "START", to: commits[0].Sha, prevPos: 0})
+	paths = append(paths, Path{from: "START", to: commits[0].Sha, prevPos: 0, style: getRandStyle()})
 
 	output := make([]string, 0, len(commits))
 	for _, commit := range commits {
@@ -35,6 +36,7 @@ type Path struct {
 	from    string
 	to      string
 	prevPos int
+	style   style.TextStyle
 }
 
 func equalHashes(a, b string) bool {
@@ -56,12 +58,24 @@ type Cell struct {
 	highlightUp, highlightDown, highlightLeft, highlightRight bool
 	cellType                                                  cellType
 	highlight                                                 bool
+	style                                                     style.TextStyle
+}
+
+var styles = []style.TextStyle{
+	style.FgCyan,
+	style.FgBlue,
+	style.FgGreen,
+	style.FgYellow,
+	style.FgMagenta,
+	style.FgRed,
 }
 
 func (cell *Cell) render() string {
 	str := cell.renderString()
 	if (cell.highlight || cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight) && !(cell.cellType != CONNECTION && !cell.highlight) {
 		str = style.FgMagenta.Sprint(str)
+	} else {
+		str = cell.style.Sprint(str)
 	}
 	return str
 }
@@ -121,6 +135,11 @@ func (cell *Cell) setHighlight() *Cell {
 	return cell
 }
 
+func (cell *Cell) setStyle(style style.TextStyle) *Cell {
+	cell.style = style
+	return cell
+}
+
 func (cell *Cell) setType(cellType cellType) *Cell {
 	cell.cellType = cellType
 	return cell
@@ -134,6 +153,13 @@ func getMaxPrevPosition(paths []Path) int {
 		}
 	}
 	return max
+}
+
+func getRandStyle() style.TextStyle {
+	// no colours for now
+	return style.FgDefault
+
+	return styles[rand.Intn(len(styles))]
 }
 
 func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Commit) (string, []Path) {
@@ -153,7 +179,8 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 	if pos == -1 {
 		// this can happen when doing `git log --all`
 		pos = len(paths)
-		paths = append(paths, Path{from: "START", to: commit.Sha, prevPos: pos})
+		// pick a random style
+		paths = append(paths, Path{from: "START", to: commit.Sha, prevPos: pos, style: getRandStyle()})
 	}
 
 	// find the first position available if you're a merge commit
@@ -182,7 +209,7 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 
 	cells := make([]*Cell, cellLength)
 	for i := 0; i < cellLength; i++ {
-		cells[i] = &Cell{}
+		cells[i] = &Cell{style: style.FgWhite}
 	}
 	if isSelected || isParentOfSelected {
 		cells[pos].setHighlight()
@@ -197,11 +224,11 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		cells[pos].setType(COMMIT)
 	}
 
-	connectHorizontal := func(x1, x2 int, highlight bool) {
-		cells[x1].setRight(highlight)
-		cells[x2].setLeft(highlight)
+	connectHorizontal := func(x1, x2 int, highlight bool, style style.TextStyle) {
+		cells[x1].setRight(highlight).setStyle(style)
+		cells[x2].setLeft(highlight).setStyle(style)
 		for i := x1 + 1; i < x2; i++ {
-			cells[i].setLeft(highlight).setRight(highlight)
+			cells[i].setLeft(highlight).setRight(highlight).setStyle(style)
 		}
 	}
 
@@ -210,17 +237,17 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		highlightPath := equalHashes(path.from, selectedCommit.Sha)
 		cells[path.prevPos].setUp(highlightPath)
 		if path.prevPos != i {
-			connectHorizontal(i, path.prevPos, highlightPath)
+			connectHorizontal(i, path.prevPos, highlightPath, path.style)
 		}
 
 		if equalHashes(path.to, commit.Sha) {
 			if i == pos {
 				continue
 			}
-			connectHorizontal(pos, i, highlightPath)
+			connectHorizontal(pos, i, highlightPath, path.style)
 		} else {
 			// check this
-			cells[i].setDown(highlightPath)
+			cells[i].setDown(highlightPath).setStyle(path.style)
 		}
 	}
 
@@ -228,7 +255,7 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		line += cell.render()
 	}
 
-	paths[pos] = Path{from: commit.Sha, to: commit.Parents[0], prevPos: pos}
+	paths[pos] = Path{from: commit.Sha, to: commit.Parents[0], prevPos: pos, style: getRandStyle()}
 	newPaths := make([]Path, 0, len(paths)+1)
 	for i, path := range paths {
 		if !equalHashes(path.to, commit.Sha) {
@@ -237,7 +264,7 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		}
 	}
 	if commit.IsMerge() {
-		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[1], prevPos: newPathPos})
+		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[1], prevPos: newPathPos, style: getRandStyle()})
 	}
 
 	return line, newPaths
