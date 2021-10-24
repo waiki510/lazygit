@@ -4,11 +4,12 @@ import (
 	"os"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
+	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
-func renderCommitGraph(commits []*models.Commit) []string {
+func renderCommitGraph(commits []*models.Commit, selectedSha string) []string {
 	if len(commits) == 0 {
 		return nil
 	}
@@ -20,7 +21,7 @@ func renderCommitGraph(commits []*models.Commit) []string {
 	output := make([]string, 0, len(commits))
 	for _, commit := range commits {
 		var line string
-		line, paths = renderLine(commit, paths)
+		line, paths = renderLine(commit, paths, selectedSha)
 		output = append(output, line)
 	}
 
@@ -50,9 +51,18 @@ const (
 type Cell struct {
 	up, down, left, right bool
 	cellType              cellType
+	highlight             bool
 }
 
 func (cell *Cell) render() string {
+	str := cell.renderString()
+	if cell.highlight {
+		str = style.FgMagenta.Sprint(str)
+	}
+	return str
+}
+
+func (cell *Cell) renderString() string {
 	first, second := getBoxDrawingChars(cell.up, cell.down, cell.left, cell.right)
 	switch cell.cellType {
 	case CONNECTION:
@@ -91,6 +101,11 @@ func (cell *Cell) setType(cellType cellType) *Cell {
 	return cell
 }
 
+func (cell *Cell) setHighlight() *Cell {
+	cell.highlight = true
+	return cell
+}
+
 func getMaxPrevPosition(paths []Path) int {
 	max := 0
 	for _, path := range paths {
@@ -101,7 +116,7 @@ func getMaxPrevPosition(paths []Path) int {
 	return max
 }
 
-func renderLine(commit *models.Commit, paths []Path) (string, []Path) {
+func renderLine(commit *models.Commit, paths []Path, selectedSha string) (string, []Path) {
 	line := ""
 
 	pos := -1
@@ -133,25 +148,47 @@ func renderLine(commit *models.Commit, paths []Path) (string, []Path) {
 		cellLength = maxPrevPos + 1
 	}
 
+	isSelected := equalHashes(commit.Sha, selectedSha)
 	cells := make([]*Cell, cellLength)
 	for i := 0; i < cellLength; i++ {
 		cells[i] = &Cell{}
 	}
+	if isSelected {
+		cells[pos].setHighlight()
+	}
 	if commit.IsMerge() {
 		cells[pos].setType(MERGE).setRight()
+		if isSelected {
+			cells[pos].setHighlight()
+		}
 		cells[newPathPos].setLeft().setDown()
+		if isSelected {
+			cells[newPathPos].setHighlight()
+		}
 		for i := pos + 1; i < newPathPos; i++ {
 			cells[i].setLeft().setRight()
+			if isSelected {
+				cells[i].setHighlight()
+			}
 		}
 	} else {
 		cells[pos].setType(COMMIT)
 	}
 
-	connectHorizontal := func(x1, x2 int) {
+	connectHorizontal := func(x1, x2 int, highlight bool) {
 		cells[x1].setRight()
+		if highlight {
+			cells[x1].setHighlight()
+		}
 		cells[x2].setLeft()
+		if highlight {
+			cells[x2].setHighlight()
+		}
 		for i := x1 + 1; i < x2; i++ {
 			cells[i].setLeft().setRight()
+			if highlight {
+				cells[i].setHighlight()
+			}
 		}
 	}
 
@@ -159,14 +196,14 @@ func renderLine(commit *models.Commit, paths []Path) (string, []Path) {
 		// get path from previous to current position
 		cells[path.prevPos].setUp()
 		if path.prevPos != i {
-			connectHorizontal(i, path.prevPos)
+			connectHorizontal(i, path.prevPos, equalHashes(path.from, selectedSha))
 		}
 
 		if equalHashes(path.to, commit.Sha) {
 			if i == pos {
 				continue
 			}
-			connectHorizontal(pos, i)
+			connectHorizontal(pos, i, equalHashes(path.from, selectedSha))
 		} else {
 			cells[i].setDown()
 		}
