@@ -49,21 +49,26 @@ const (
 )
 
 type Cell struct {
-	up, down, left, right bool
-	cellType              cellType
-	highlight             bool
+	up, down, left, right                                     bool
+	highlightUp, highlightDown, highlightLeft, highlightRight bool
+	cellType                                                  cellType
+	highlight                                                 bool
 }
 
 func (cell *Cell) render() string {
 	str := cell.renderString()
-	if cell.highlight {
+	if cell.highlight || cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight {
 		str = style.FgMagenta.Sprint(str)
 	}
 	return str
 }
 
 func (cell *Cell) renderString() string {
-	first, second := getBoxDrawingChars(cell.up, cell.down, cell.left, cell.right)
+	up, down, left, right := cell.up, cell.down, cell.left, cell.right
+	if cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight {
+		up, down, left, right = cell.highlightUp, cell.highlightDown, cell.highlightLeft, cell.highlightRight
+	}
+	first, second := getBoxDrawingChars(up, down, left, right)
 	switch cell.cellType {
 	case CONNECTION:
 		return string(first) + string(second)
@@ -76,33 +81,45 @@ func (cell *Cell) renderString() string {
 	panic("unreachable")
 }
 
-func (cell *Cell) setUp() *Cell {
+func (cell *Cell) setUp(highlight bool) *Cell {
 	cell.up = true
+	if highlight {
+		cell.highlightUp = true
+	}
 	return cell
 }
 
-func (cell *Cell) setDown() *Cell {
+func (cell *Cell) setDown(highlight bool) *Cell {
 	cell.down = true
+	if highlight {
+		cell.highlightDown = true
+	}
 	return cell
 }
 
-func (cell *Cell) setLeft() *Cell {
+func (cell *Cell) setLeft(highlight bool) *Cell {
 	cell.left = true
+	if highlight {
+		cell.highlightLeft = true
+	}
 	return cell
 }
 
-func (cell *Cell) setRight() *Cell {
+func (cell *Cell) setRight(highlight bool) *Cell {
 	cell.right = true
-	return cell
-}
-
-func (cell *Cell) setType(cellType cellType) *Cell {
-	cell.cellType = cellType
+	if highlight {
+		cell.highlightRight = true
+	}
 	return cell
 }
 
 func (cell *Cell) setHighlight() *Cell {
 	cell.highlight = true
+	return cell
+}
+
+func (cell *Cell) setType(cellType cellType) *Cell {
+	cell.cellType = cellType
 	return cell
 }
 
@@ -158,49 +175,27 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		cells[pos].setHighlight()
 	}
 	if commit.IsMerge() {
-		cells[pos].setType(MERGE).setRight()
-		if isSelected {
-			cells[pos].setHighlight()
-		}
-		cells[newPathPos].setLeft().setDown()
-		if isSelected {
-			cells[newPathPos].setHighlight()
-		}
+		cells[pos].setType(MERGE).setRight(isSelected)
+		cells[newPathPos].setLeft(isSelected).setDown(isSelected)
 		for i := pos + 1; i < newPathPos; i++ {
-			cells[i].setLeft().setRight()
-			if isSelected {
-				cells[i].setHighlight()
-			}
+			cells[i].setLeft(isSelected).setRight(isSelected)
 		}
 	} else {
 		cells[pos].setType(COMMIT)
 	}
 
 	connectHorizontal := func(x1, x2 int, highlight bool) {
-		cells[x1].setRight()
-		if highlight {
-			cells[x1].setHighlight()
-		}
-		cells[x2].setLeft()
-		if highlight {
-			cells[x2].setHighlight()
-		}
+		cells[x1].setRight(highlight)
+		cells[x2].setLeft(highlight)
 		for i := x1 + 1; i < x2; i++ {
-			cells[i].setLeft().setRight()
-			if highlight {
-				cells[i].setHighlight()
-			}
+			cells[i].setLeft(highlight).setRight(highlight)
 		}
 	}
 
 	for i, path := range paths {
 		// get path from previous to current position
 		highlightPath := equalHashes(path.from, selectedCommit.Sha)
-		if highlightPath {
-			cells[path.prevPos].setHighlight()
-			cells[i].setHighlight()
-		}
-		cells[path.prevPos].setUp()
+		cells[path.prevPos].setUp(highlightPath)
 		if path.prevPos != i {
 			connectHorizontal(i, path.prevPos, highlightPath)
 		}
@@ -211,7 +206,8 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 			}
 			connectHorizontal(pos, i, highlightPath)
 		} else {
-			cells[i].setDown()
+			// check this
+			cells[i].setDown(highlightPath)
 		}
 	}
 
