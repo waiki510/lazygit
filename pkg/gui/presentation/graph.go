@@ -143,6 +143,7 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 	terminating := 0
 	for i, path := range paths {
 		if equalHashes(path.to, commit.Sha) {
+			// if we haven't seen this before, what do we do? Treat it like it's got random parents?
 			if pos == -1 {
 				pos = i
 			}
@@ -150,7 +151,9 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		}
 	}
 	if pos == -1 {
-		Log.Warnf("no parent for commit %s", commit.Sha)
+		// this can happen when doing `git log --all`
+		pos = len(paths)
+		paths = append(paths, Path{from: "START", to: commit.Sha, prevPos: pos})
 	}
 
 	// find the first position available if you're a merge commit
