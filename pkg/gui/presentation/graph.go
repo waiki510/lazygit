@@ -9,6 +9,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const mergeSymbol = "⏣" //Ɏ
+const commitSymbol = "⎔"
+
 func renderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) []string {
 	if len(commits) == 0 {
 		return nil
@@ -57,7 +60,7 @@ type Cell struct {
 
 func (cell *Cell) render() string {
 	str := cell.renderString()
-	if cell.highlight || cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight {
+	if (cell.highlight || cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight) && !(cell.cellType != CONNECTION && !cell.highlight) {
 		str = style.FgMagenta.Sprint(str)
 	}
 	return str
@@ -73,9 +76,9 @@ func (cell *Cell) renderString() string {
 	case CONNECTION:
 		return string(first) + string(second)
 	case COMMIT:
-		return "o" + string(second)
+		return commitSymbol + string(second)
 	case MERGE:
-		return "M" + string(second)
+		return mergeSymbol + string(second)
 	}
 
 	panic("unreachable")
@@ -166,12 +169,19 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 	}
 
 	isSelected := equalHashes(commit.Sha, selectedCommit.Sha)
+	isParentOfSelected := false
+	for _, parentSha := range selectedCommit.Parents {
+		if equalHashes(parentSha, commit.Sha) {
+			isParentOfSelected = true
+			break
+		}
+	}
 
 	cells := make([]*Cell, cellLength)
 	for i := 0; i < cellLength; i++ {
 		cells[i] = &Cell{}
 	}
-	if isSelected {
+	if isSelected || isParentOfSelected {
 		cells[pos].setHighlight()
 	}
 	if commit.IsMerge() {
