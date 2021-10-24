@@ -1,8 +1,9 @@
 package style
 
 import (
-	"github.com/gookit/color"
 	"text/template"
+
+	"github.com/gookit/color"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 	FgBlue         = FromBasicFg(color.FgBlue)
 	FgYellow       = FromBasicFg(color.FgYellow)
 	FgMagenta      = FromBasicFg(color.FgMagenta)
+	FgDefault      = FromBasicFg(color.FgDefault)
 
 	BgWhite   = FromBasicBg(color.BgWhite)
 	BgBlack   = FromBasicBg(color.BgBlack)
