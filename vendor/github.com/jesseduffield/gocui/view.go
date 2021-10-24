@@ -758,7 +758,8 @@ func (v *View) WriteFrom(x int, y int, content string) {
 	v.wx = x
 	v.wy = y
 
-	v.writeRunes([]rune(content))
+	v.WriteString(content)
+	v.FlushStaleCells()
 	// assuming we haven't appended new lines
 	v.wx = owx
 	v.wy = owy

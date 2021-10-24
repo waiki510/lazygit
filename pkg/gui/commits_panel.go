@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazygit/pkg/commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
@@ -47,7 +48,11 @@ func (gui *Gui) handleCommitSelect() error {
 
 	gui.Log.Warn(commit.Parents)
 
-	// gui.State.Contexts.BranchCommits.OnRender()
+	gui.clearOldCommitGraphSelection()
+	gui.setNewCommitGraphSelection(state.SelectedLineIdx, commit)
+	gui.g.Update(func(*gocui.Gui) error {
+		return nil
+	})
 
 	return gui.refreshMainViews(refreshMainOpts{
 		main: &viewUpdateOpts{
@@ -56,6 +61,14 @@ func (gui *Gui) handleCommitSelect() error {
 		},
 		secondary: gui.secondaryPatchPanelUpdateOpts(),
 	})
+}
+
+func (gui *Gui) clearOldCommitGraphSelection() {
+	// gui.writeLinesToViewAtPos(gui.Views.Commits, state.SelectedLineIdx, []string{"a", "b", "c", "d"})
+}
+
+func (gui *Gui) setNewCommitGraphSelection(index int, selectedCommit *models.Commit) {
+	gui.writeLinesToViewAtPos(gui.Views.Commits, index, []string{"a", "b", "c", "d"})
 }
 
 // during startup, the bottleneck is fetching the reflog entries. We need these
