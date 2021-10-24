@@ -14,22 +14,23 @@ import (
 func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool, cherryPickedCommitShaMap map[string]bool, diffName string, parseEmoji bool) [][]string {
 	lines := make([][]string, len(commits))
 
-	var displayFunc func(*models.Commit, map[string]bool, bool, bool) []string
+	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
 	if fullDescription {
 		displayFunc = getFullDescriptionDisplayStringsForCommit
 	} else {
 		displayFunc = getDisplayStringsForCommit
 	}
 
-	for i := range commits {
-		diffed := commits[i].Sha == diffName
-		lines[i] = displayFunc(commits[i], cherryPickedCommitShaMap, diffed, parseEmoji)
+	graphLines := renderCommitGraph(commits)
+	for i, commit := range commits {
+		diffed := commit.Sha == diffName
+		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i])
 	}
 
 	return lines
 }
 
-func getFullDescriptionDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[string]bool, diffed, parseEmoji bool) []string {
+func getFullDescriptionDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[string]bool, diffed, parseEmoji bool, graphLine string) []string {
 	shaColor := theme.DefaultTextColor
 	switch c.Status {
 	case "unpushed":
@@ -69,12 +70,12 @@ func getFullDescriptionDisplayStringsForCommit(c *models.Commit, cherryPickedCom
 	return []string{
 		shaColor.Sprint(c.ShortSha()),
 		secondColumnString,
-		authors.LongAuthor(c.Author),
-		tagString + theme.DefaultTextColor.Sprint(name),
+		longAuthor(c.Author),
+		graphLine + tagString + theme.DefaultTextColor.Sprint(name),
 	}
 }
 
-func getDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[string]bool, diffed, parseEmoji bool) []string {
+func getDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[string]bool, diffed, parseEmoji bool, graphLine string) []string {
 	shaColor := theme.DefaultTextColor
 	switch c.Status {
 	case "unpushed":
@@ -113,8 +114,8 @@ func getDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[s
 
 	return []string{
 		shaColor.Sprint(c.ShortSha()),
-		authors.ShortAuthor(c.Author),
-		actionString + tagString + theme.DefaultTextColor.Sprint(name),
+		shortAuthor(c.Author),
+		graphLine + actionString + tagString + theme.DefaultTextColor.Sprint(name),
 	}
 }
 
