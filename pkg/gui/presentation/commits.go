@@ -11,7 +11,7 @@ import (
 	"github.com/kyokomi/emoji/v2"
 )
 
-func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool, cherryPickedCommitShaMap map[string]bool, diffName string, parseEmoji bool, selectedSha string) [][]string {
+func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool, cherryPickedCommitShaMap map[string]bool, diffName string, parseEmoji bool, selectedCommit *models.Commit) [][]string {
 	lines := make([][]string, len(commits))
 
 	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
@@ -21,7 +21,7 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 		displayFunc = getDisplayStringsForCommit
 	}
 
-	graphLines := renderCommitGraph(commits, selectedSha)
+	graphLines := renderCommitGraph(commits, selectedCommit)
 	for i, commit := range commits {
 		diffed := commit.Sha == diffName
 		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i])

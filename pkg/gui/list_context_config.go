@@ -158,17 +158,13 @@ func (gui *Gui) branchCommitsListContext() *ListContext {
 		Gui:                 gui,
 		GetDisplayStrings: func() [][]string {
 			selectedCommit := gui.getSelectedLocalCommit()
-			selectedSha := "NONE"
-			if selectedCommit != nil {
-				selectedSha = selectedCommit.Sha
-			}
 			return presentation.GetCommitListDisplayStrings(
 				gui.State.Commits,
 				gui.State.ScreenMode != SCREEN_NORMAL,
 				gui.cherryPickedCommitShaMap(),
 				gui.State.Modes.Diffing.Ref,
 				parseEmoji,
-				selectedSha,
+				selectedCommit,
 			)
 		},
 		SelectedItem: func() (ListItem, bool) {
@@ -222,17 +218,13 @@ func (gui *Gui) subCommitsListContext() *ListContext {
 		Gui:            gui,
 		GetDisplayStrings: func() [][]string {
 			selectedCommit := gui.getSelectedSubCommit()
-			selectedSha := "NONE"
-			if selectedCommit != nil {
-				selectedSha = selectedCommit.Sha
-			}
 			return presentation.GetCommitListDisplayStrings(
 				gui.State.SubCommits,
 				gui.State.ScreenMode != SCREEN_NORMAL,
 				gui.cherryPickedCommitShaMap(),
 				gui.State.Modes.Diffing.Ref,
 				parseEmoji,
-				selectedSha,
+				selectedCommit,
 			)
 		},
 		SelectedItem: func() (ListItem, bool) {
