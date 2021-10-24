@@ -2,12 +2,14 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazygit/pkg/commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
+	"github.com/jesseduffield/lazygit/pkg/gui/presentation"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 )
 
@@ -64,11 +66,46 @@ func (gui *Gui) handleCommitSelect() error {
 }
 
 func (gui *Gui) clearOldCommitGraphSelection() {
-	// gui.writeLinesToViewAtPos(gui.Views.Commits, state.SelectedLineIdx, []string{"a", "b", "c", "d"})
+	displayStrings := presentation.ResetOldCommitLines(
+		gui.State.Commits,
+		gui.State.ScreenMode != SCREEN_NORMAL,
+		gui.cherryPickedCommitShaMap(),
+		gui.State.Modes.Diffing.Ref,
+		gui.Config.GetUserConfig().Git.ParseEmoji,
+		gui.getSelectedLocalCommit(),
+	)
+
+	if len(displayStrings) == 0 || len(displayStrings[0]) == 0 {
+		return
+	}
+
+	list := strings.Split(utils.RenderDisplayStrings(displayStrings), "\n")
+	gui.writeLinesToViewAtPos(gui.Views.Commits, presentation.OldStart, list)
 }
 
 func (gui *Gui) setNewCommitGraphSelection(index int, selectedCommit *models.Commit) {
-	gui.writeLinesToViewAtPos(gui.Views.Commits, index, []string{"a", "b", "c", "d"})
+	fromIndex := gui.State.Panels.Commits.SelectedLineIdx
+	displayStrings := presentation.SetNewSelection(
+		gui.State.Commits,
+		gui.State.ScreenMode != SCREEN_NORMAL,
+		gui.cherryPickedCommitShaMap(),
+		gui.State.Modes.Diffing.Ref,
+		gui.Config.GetUserConfig().Git.ParseEmoji,
+		gui.getSelectedLocalCommit(),
+		gui.State.Panels.Commits.SelectedLineIdx,
+	)
+
+	if len(displayStrings) == 0 || len(displayStrings[0]) == 0 {
+		return
+	}
+
+	list := strings.Split(utils.RenderDisplayStrings(displayStrings), "\n")
+	gui.writeLinesToViewAtPos(gui.Views.Commits, fromIndex, list)
+}
+
+func (gui *Gui) writeLinesToViewAtPos(view *gocui.View, y int, lines []string) {
+	content := strings.Join(lines, "\x1b[K\n") + "\x1b[K"
+	view.WriteFrom(0, y, content)
 }
 
 // during startup, the bottleneck is fetching the reflog entries. We need these

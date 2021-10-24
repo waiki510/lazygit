@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"os"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/mattn/go-runewidth"
+	"github.com/sirupsen/logrus"
 )
 
 // WithPadding pads a string as much as you want
@@ -43,6 +46,20 @@ func getPaddedDisplayStrings(stringArrays [][]string, padWidths []int) []string 
 	return paddedDisplayStrings
 }
 
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()
+
 func getPadWidths(stringArrays [][]string) []int {
 	maxWidth := 0
 	for _, stringArray := range stringArrays {
@@ -56,6 +73,9 @@ func getPadWidths(stringArrays [][]string) []int {
 	padWidths := make([]int, maxWidth-1)
 	for i := range padWidths {
 		for _, strings := range stringArrays {
+			if len(strings) == 0 {
+				panic(spew.Sdump(stringArrays))
+			}
 			uncoloredStr := Decolorise(strings[i])
 
 			width := runewidth.StringWidth(uncoloredStr)

@@ -342,6 +342,8 @@ type guiState struct {
 
 	// for displaying suggestions while typing in a file name
 	FilesTrie *patricia.Trie
+
+	lastSelectedCommitIdx int
 }
 
 // reuseState determines if we pull the repo state from our repo state map or

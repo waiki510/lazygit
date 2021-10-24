@@ -13,23 +13,33 @@ import (
 const mergeSymbol = "⏣" //Ɏ
 const commitSymbol = "⎔"
 
-func renderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) []string {
+// I'll take a start index
+
+type Line struct {
+	isHighlighted bool
+	content       string
+}
+
+func renderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) ([]Blah, []Line) {
 	if len(commits) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// unlikely to have merges 10 levels deep
 	paths := make([]Path, 0, 10)
 	paths = append(paths, Path{from: "START", to: commits[0].Sha, prevPos: 0, style: getRandStyle()})
 
-	output := make([]string, 0, len(commits))
+	lines := make([]Line, 0, len(commits))
+	blahs := []Blah{}
 	for _, commit := range commits {
-		var line string
-		line, paths = renderLine(commit, paths, selectedCommit)
-		output = append(output, line)
+		var line Line
+		var blah Blah
+		line, blah, paths = renderLine(commit, paths, selectedCommit)
+		blahs = append(blahs, blah)
+		lines = append(lines, line)
 	}
 
-	return output
+	return blahs, lines
 }
 
 type Path struct {
@@ -72,7 +82,7 @@ var styles = []style.TextStyle{
 
 func (cell *Cell) render() string {
 	str := cell.renderString()
-	if (cell.highlight || cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight) && !(cell.cellType != CONNECTION && !cell.highlight) {
+	if cell.isHighlighted() {
 		str = style.FgMagenta.Sprint(str)
 	} else {
 		str = cell.style.Sprint(str)
@@ -145,6 +155,10 @@ func (cell *Cell) setType(cellType cellType) *Cell {
 	return cell
 }
 
+func (cell *Cell) isHighlighted() bool {
+	return (cell.highlight || cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight) && !(cell.cellType != CONNECTION && !cell.highlight)
+}
+
 func getMaxPrevPosition(paths []Path) int {
 	max := 0
 	for _, path := range paths {
@@ -162,32 +176,11 @@ func getRandStyle() style.TextStyle {
 	return styles[rand.Intn(len(styles))]
 }
 
-func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Commit) (string, []Path) {
-	line := ""
-
-	pos := -1
-	terminating := 0
-	for i, path := range paths {
-		if equalHashes(path.to, commit.Sha) {
-			// if we haven't seen this before, what do we do? Treat it like it's got random parents?
-			if pos == -1 {
-				pos = i
-			}
-			terminating++
-		}
-	}
-	if pos == -1 {
-		// this can happen when doing `git log --all`
-		pos = len(paths)
-		// pick a random style
-		paths = append(paths, Path{from: "START", to: commit.Sha, prevPos: pos, style: getRandStyle()})
-	}
-
-	// find the first position available if you're a merge commit
-	newPathPos := -1
-	if commit.IsMerge() {
-		newPathPos = len(paths) - terminating + 1
-	}
+func createLine(blah Blah, selectedCommit *models.Commit) Line {
+	paths := blah.paths
+	commit := blah.commit
+	pos := blah.pos
+	newPathPos := blah.newPathPos
 
 	cellLength := len(paths)
 	if newPathPos > cellLength-1 {
@@ -251,9 +244,51 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		}
 	}
 
+	line := Line{content: "", isHighlighted: false}
 	for _, cell := range cells {
-		line += cell.render()
+		line.content += cell.render()
+		if cell.isHighlighted() {
+			line.isHighlighted = true
+		}
 	}
+
+	return line
+}
+
+type Blah struct {
+	commit     *models.Commit
+	paths      []Path
+	pos        int
+	newPathPos int
+}
+
+func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Commit) (Line, Blah, []Path) {
+	pos := -1
+	terminating := 0
+	for i, path := range paths {
+		if equalHashes(path.to, commit.Sha) {
+			// if we haven't seen this before, what do we do? Treat it like it's got random parents?
+			if pos == -1 {
+				pos = i
+			}
+			terminating++
+		}
+	}
+	if pos == -1 {
+		// this can happen when doing `git log --all`
+		pos = len(paths)
+		// pick a random style
+		paths = append(paths, Path{from: "START", to: commit.Sha, prevPos: pos, style: getRandStyle()})
+	}
+
+	// find the first position available if you're a merge commit
+	newPathPos := -1
+	if commit.IsMerge() {
+		newPathPos = len(paths) - terminating + 1
+	}
+
+	blah := Blah{commit: commit, paths: paths, pos: pos, newPathPos: newPathPos}
+	line := createLine(blah, selectedCommit)
 
 	paths[pos] = Path{from: commit.Sha, to: commit.Parents[0], prevPos: pos, style: getRandStyle()}
 	newPaths := make([]Path, 0, len(paths)+1)
@@ -267,8 +302,10 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[1], prevPos: newPathPos, style: getRandStyle()})
 	}
 
-	return line, newPaths
+	return line, blah, newPaths
 }
+
+// instead of taking the previous path array and rendering the current line, we take the previous and next path arrays and render the current line.
 
 func newLogger() *logrus.Entry {
 	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
