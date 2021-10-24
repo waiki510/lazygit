@@ -2,6 +2,7 @@ package presentation
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/authors"
@@ -11,7 +12,88 @@ import (
 	"github.com/kyokomi/emoji/v2"
 )
 
+var lastBlahs = []Blah{}
+var OldStart int = -1
+var OldEnd int = -1
+var mutex sync.Mutex
+
+func ResetOldCommitLines(
+	commits []*models.Commit,
+	fullDescription bool,
+	cherryPickedCommitShaMap map[string]bool,
+	diffName string,
+	parseEmoji bool,
+	selectedCommit *models.Commit,
+) [][]string {
+	mutex.Lock()
+	defer mutex.Unlock()
+	lines := [][]string{}
+
+	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
+	if fullDescription {
+		displayFunc = getFullDescriptionDisplayStringsForCommit
+	} else {
+		displayFunc = getDisplayStringsForCommit
+	}
+
+	// all I need to do is reconstruct the graph lines for the old commit and the newly selected commit. It would be good if I had a history of the range of the last selected one.
+
+	if OldStart == -1 || OldEnd == -1 {
+		return [][]string{}
+	}
+
+	// need to make use of lastBlahs
+	blahs := lastBlahs
+	for i := OldStart; i <= OldEnd && i < len(commits); i++ {
+		commit := commits[i]
+		line := createLine(blahs[i], selectedCommit)
+		diffed := commit.Sha == diffName
+		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.content))
+	}
+
+	return lines
+}
+
+func SetNewSelection(
+	commits []*models.Commit,
+	fullDescription bool,
+	cherryPickedCommitShaMap map[string]bool,
+	diffName string,
+	parseEmoji bool,
+	selectedCommit *models.Commit,
+	index int,
+) [][]string {
+	mutex.Lock()
+	defer mutex.Unlock()
+	lines := [][]string{}
+
+	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
+	if fullDescription {
+		displayFunc = getFullDescriptionDisplayStringsForCommit
+	} else {
+		displayFunc = getDisplayStringsForCommit
+	}
+
+	// need to make use of lastBlahs
+	blahs := lastBlahs
+	OldStart = index
+	for i := index; i < len(commits); i++ {
+		commit := commits[i]
+		line := createLine(blahs[i], selectedCommit)
+		if !line.isHighlighted {
+			break
+		}
+		diffed := commit.Sha == diffName
+		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.content))
+		OldEnd = i
+	}
+
+	return lines
+}
+
 func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool, cherryPickedCommitShaMap map[string]bool, diffName string, parseEmoji bool, selectedCommit *models.Commit) [][]string {
+	mutex.Lock()
+	defer mutex.Unlock()
 	lines := make([][]string, len(commits))
 
 	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
@@ -21,10 +103,23 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 		displayFunc = getDisplayStringsForCommit
 	}
 
-	graphLines := renderCommitGraph(commits, selectedCommit)
+	blahs, graphLines := renderCommitGraph(commits, selectedCommit)
+	OldStart = -1
+	OldEnd = -1
+	for i, line := range graphLines {
+		if line.isHighlighted && OldStart == -1 {
+			OldStart = i
+		}
+		if OldStart != -1 && !line.isHighlighted {
+			OldEnd = i
+			break
+		}
+	}
+	lastBlahs = blahs
+
 	for i, commit := range commits {
 		diffed := commit.Sha == diffName
-		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i])
+		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i].content)
 	}
 
 	return lines
