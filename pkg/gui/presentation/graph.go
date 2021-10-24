@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func renderCommitGraph(commits []*models.Commit, selectedSha string) []string {
+func renderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) []string {
 	if len(commits) == 0 {
 		return nil
 	}
@@ -21,7 +21,7 @@ func renderCommitGraph(commits []*models.Commit, selectedSha string) []string {
 	output := make([]string, 0, len(commits))
 	for _, commit := range commits {
 		var line string
-		line, paths = renderLine(commit, paths, selectedSha)
+		line, paths = renderLine(commit, paths, selectedCommit)
 		output = append(output, line)
 	}
 
@@ -116,7 +116,7 @@ func getMaxPrevPosition(paths []Path) int {
 	return max
 }
 
-func renderLine(commit *models.Commit, paths []Path, selectedSha string) (string, []Path) {
+func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Commit) (string, []Path) {
 	line := ""
 
 	pos := -1
@@ -148,7 +148,8 @@ func renderLine(commit *models.Commit, paths []Path, selectedSha string) (string
 		cellLength = maxPrevPos + 1
 	}
 
-	isSelected := equalHashes(commit.Sha, selectedSha)
+	isSelected := equalHashes(commit.Sha, selectedCommit.Sha)
+
 	cells := make([]*Cell, cellLength)
 	for i := 0; i < cellLength; i++ {
 		cells[i] = &Cell{}
@@ -194,16 +195,21 @@ func renderLine(commit *models.Commit, paths []Path, selectedSha string) (string
 
 	for i, path := range paths {
 		// get path from previous to current position
+		highlightPath := equalHashes(path.from, selectedCommit.Sha)
+		if highlightPath {
+			cells[path.prevPos].setHighlight()
+			cells[i].setHighlight()
+		}
 		cells[path.prevPos].setUp()
 		if path.prevPos != i {
-			connectHorizontal(i, path.prevPos, equalHashes(path.from, selectedSha))
+			connectHorizontal(i, path.prevPos, highlightPath)
 		}
 
 		if equalHashes(path.to, commit.Sha) {
 			if i == pos {
 				continue
 			}
-			connectHorizontal(pos, i, equalHashes(path.from, selectedSha))
+			connectHorizontal(pos, i, highlightPath)
 		} else {
 			cells[i].setDown()
 		}

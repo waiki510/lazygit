@@ -47,6 +47,8 @@ func (gui *Gui) handleCommitSelect() error {
 
 	gui.Log.Warn(commit.Parents)
 
+	gui.State.Contexts.BranchCommits.OnRender()
+
 	return gui.refreshMainViews(refreshMainOpts{
 		main: &viewUpdateOpts{
 			title: "Patch",
