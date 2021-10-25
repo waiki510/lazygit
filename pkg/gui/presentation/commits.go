@@ -7,6 +7,7 @@ import (
 
 	"github.com/gookit/color"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
+	"github.com/jesseduffield/lazygit/pkg/gui/presentation/graph"
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/theme"
 	"github.com/jesseduffield/lazygit/pkg/utils"
@@ -15,7 +16,7 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-var lastBlahs = []Blah{}
+var lastBlahs = []graph.Blah{}
 var OldStart int = -1
 var OldEnd int = -1
 var mutex sync.Mutex
@@ -49,9 +50,9 @@ func ResetOldCommitLines(
 	blahs := lastBlahs
 	for i := OldStart; i <= OldEnd && i < len(commits); i++ {
 		commit := commits[i]
-		line := createLine(blahs[i], selectedCommit)
+		line := graph.CreateLine(blahs[i], selectedCommit)
 		diffed := commit.Sha == diffName
-		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.content))
+		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.Content))
 	}
 
 	return lines
@@ -82,12 +83,12 @@ func SetNewSelection(
 	OldStart = index
 	for i := index; i < len(commits); i++ {
 		commit := commits[i]
-		line := createLine(blahs[i], selectedCommit)
-		if !line.isHighlighted {
+		line := graph.CreateLine(blahs[i], selectedCommit)
+		if !line.IsHighlighted {
 			break
 		}
 		diffed := commit.Sha == diffName
-		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.content))
+		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.Content))
 		OldEnd = i
 	}
 
@@ -106,14 +107,14 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 		displayFunc = getDisplayStringsForCommit
 	}
 
-	blahs, graphLines := renderCommitGraph(commits, selectedCommit)
+	blahs, graphLines := graph.RenderCommitGraph(commits, selectedCommit)
 	OldStart = -1
 	OldEnd = -1
 	for i, line := range graphLines {
-		if line.isHighlighted && OldStart == -1 {
+		if line.IsHighlighted && OldStart == -1 {
 			OldStart = i
 		}
-		if OldStart != -1 && !line.isHighlighted {
+		if OldStart != -1 && !line.IsHighlighted {
 			OldEnd = i
 			break
 		}
@@ -122,7 +123,7 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 
 	for i, commit := range commits {
 		diffed := commit.Sha == diffName
-		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i].content)
+		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i].Content)
 	}
 
 	return lines

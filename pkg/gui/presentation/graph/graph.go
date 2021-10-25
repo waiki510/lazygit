@@ -1,4 +1,4 @@
-package presentation
+package graph
 
 import (
 	"math/rand"
@@ -16,11 +16,11 @@ const commitSymbol = "⎔"
 // I'll take a start index
 
 type Line struct {
-	isHighlighted bool
-	content       string
+	IsHighlighted bool
+	Content       string
 }
 
-func renderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) ([]Blah, []Line) {
+func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) ([]Blah, []Line) {
 	if len(commits) == 0 {
 		return nil, nil
 	}
@@ -176,7 +176,7 @@ func getRandStyle() style.TextStyle {
 	return styles[rand.Intn(len(styles))]
 }
 
-func createLine(blah Blah, selectedCommit *models.Commit) Line {
+func CreateLine(blah Blah, selectedCommit *models.Commit) Line {
 	paths := blah.paths
 	commit := blah.commit
 	pos := blah.pos
@@ -244,11 +244,11 @@ func createLine(blah Blah, selectedCommit *models.Commit) Line {
 		}
 	}
 
-	line := Line{content: "", isHighlighted: false}
+	line := Line{Content: "", IsHighlighted: false}
 	for _, cell := range cells {
-		line.content += cell.render()
+		line.Content += cell.render()
 		if cell.isHighlighted() {
-			line.isHighlighted = true
+			line.IsHighlighted = true
 		}
 	}
 
@@ -288,7 +288,7 @@ func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Comm
 	}
 
 	blah := Blah{commit: commit, paths: paths, pos: pos, newPathPos: newPathPos}
-	line := createLine(blah, selectedCommit)
+	line := CreateLine(blah, selectedCommit)
 
 	paths[pos] = Path{from: commit.Sha, to: commit.Parents[0], prevPos: pos, style: getRandStyle()}
 	newPaths := make([]Path, 0, len(paths)+1)

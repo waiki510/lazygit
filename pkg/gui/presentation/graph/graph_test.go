@@ -1,4 +1,4 @@
-package presentation
+package graph
 
 import (
 	"strings"
@@ -191,19 +191,19 @@ func TestRenderGraph(t *testing.T) {
 	t.Log("\n" + strings.Join(renderCommitGraph(commits), "\n"))
 
 	assert.Equal(t,
-		`o 
-o 
-o 
-M─┐ 
-│ o 
-o─┘ 
-o 
-M─┐ 
-│ o 
-│ o 
-o │ 
-o │ 
-o │ 
+		`o
+o
+o
+M─┐
+│ o
+o─┘
+o
+M─┐
+│ o
+│ o
+o │
+o │
+o │
 o─┘ `,
 		strings.Join(renderCommitGraph(commits), "\n"))
 }
