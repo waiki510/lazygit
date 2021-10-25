@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"math/rand"
 	"os"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
@@ -10,68 +9,62 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const mergeSymbol = "⏣" //Ɏ
-const commitSymbol = "⎔"
-
-// I'll take a start index
-
 type Line struct {
 	IsHighlighted bool
 	Content       string
 }
 
-func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) ([]Blah, []Line) {
-	if len(commits) == 0 {
-		return nil, nil
+type PipeSet struct {
+	pipes   []Pipe
+	isMerge bool
+}
+
+func (self PipeSet) ContainsCommitSha(sha string) bool {
+	for _, pipe := range self.pipes {
+		if equalHashes(pipe.sourceCommitSha, sha) {
+			return true
+		}
 	}
-
-	// unlikely to have merges 10 levels deep
-	paths := make([]Path, 0, 10)
-	paths = append(paths, Path{from: "START", to: commits[0].Sha, prevPos: 0, style: getRandStyle()})
-
-	lines := make([]Line, 0, len(commits))
-	blahs := []Blah{}
-	for _, commit := range commits {
-		var line Line
-		var blah Blah
-		line, blah, paths = renderLine(commit, paths, selectedCommit)
-		blahs = append(blahs, blah)
-		lines = append(lines, line)
-	}
-
-	return blahs, lines
+	return false
 }
 
 type Path struct {
-	from    string
-	to      string
-	prevPos int
-	style   style.TextStyle
+	from       string
+	to         string
+	styleIndex int
 }
 
-func equalHashes(a, b string) bool {
-	length := utils.Min(len(a), len(b))
-	// parent hashes are only stored up to 20 characters for some reason so we'll truncate to that for comparison
-	return a[:length] == b[:length]
+func (p Path) id() string {
+	// from will be unique per path
+	return p.from
 }
 
-type cellType int
+type PipeKind uint8
 
 const (
-	CONNECTION cellType = iota
-	COMMIT
-	MERGE
+	STARTS PipeKind = iota
+	TERMINATES
+	CONTINUES
 )
 
-type Cell struct {
-	up, down, left, right                                     bool
-	highlightUp, highlightDown, highlightLeft, highlightRight bool
-	cellType                                                  cellType
-	highlight                                                 bool
-	style                                                     style.TextStyle
+type Pipe struct {
+	fromPos         int
+	toPos           int
+	kind            PipeKind
+	style           style.TextStyle
+	sourceCommitSha string
+}
+
+func (self Pipe) left() int {
+	return utils.Min(self.fromPos, self.toPos)
+}
+
+func (self Pipe) right() int {
+	return utils.Max(self.fromPos, self.toPos)
 }
 
 var styles = []style.TextStyle{
+	style.FgDefault,
 	style.FgCyan,
 	style.FgBlue,
 	style.FgGreen,
@@ -80,229 +73,294 @@ var styles = []style.TextStyle{
 	style.FgRed,
 }
 
-func (cell *Cell) render() string {
-	str := cell.renderString()
-	if cell.isHighlighted() {
-		str = style.FgMagenta.Sprint(str)
+func getNextStyleIndex(index int) int {
+	if index == len(styles)-1 {
+		return 0
 	} else {
-		str = cell.style.Sprint(str)
+		return index + 1
 	}
-	return str
 }
 
-func (cell *Cell) renderString() string {
-	up, down, left, right := cell.up, cell.down, cell.left, cell.right
-	if cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight {
-		up, down, left, right = cell.highlightUp, cell.highlightDown, cell.highlightLeft, cell.highlightRight
-	}
-	first, second := getBoxDrawingChars(up, down, left, right)
-	switch cell.cellType {
-	case CONNECTION:
-		return string(first) + string(second)
-	case COMMIT:
-		return commitSymbol + string(second)
-	case MERGE:
-		return mergeSymbol + string(second)
+func getNextStyleIndexForPath(paths []Path) int {
+	if len(paths) == 0 {
+		return 0
 	}
 
-	panic("unreachable")
+	return getNextStyleIndex(paths[len(paths)-1].styleIndex)
 }
 
-func (cell *Cell) setUp(highlight bool) *Cell {
-	cell.up = true
-	if highlight {
-		cell.highlightUp = true
-	}
-	return cell
+func getStyle(index int) style.TextStyle {
+	return styles[index]
 }
 
-func (cell *Cell) setDown(highlight bool) *Cell {
-	cell.down = true
-	if highlight {
-		cell.highlightDown = true
-	}
-	return cell
-}
-
-func (cell *Cell) setLeft(highlight bool) *Cell {
-	cell.left = true
-	if highlight {
-		cell.highlightLeft = true
-	}
-	return cell
-}
-
-func (cell *Cell) setRight(highlight bool) *Cell {
-	cell.right = true
-	if highlight {
-		cell.highlightRight = true
-	}
-	return cell
-}
-
-func (cell *Cell) setHighlight() *Cell {
-	cell.highlight = true
-	return cell
-}
-
-func (cell *Cell) setStyle(style style.TextStyle) *Cell {
-	cell.style = style
-	return cell
-}
-
-func (cell *Cell) setType(cellType cellType) *Cell {
-	cell.cellType = cellType
-	return cell
-}
-
-func (cell *Cell) isHighlighted() bool {
-	return (cell.highlight || cell.highlightUp || cell.highlightDown || cell.highlightLeft || cell.highlightRight) && !(cell.cellType != CONNECTION && !cell.highlight)
-}
-
-func getMaxPrevPosition(paths []Path) int {
-	max := 0
-	for _, path := range paths {
-		if path.prevPos > max {
-			max = path.prevPos
-		}
-	}
-	return max
-}
-
-func getRandStyle() style.TextStyle {
-	// no colours for now
-	return style.FgDefault
-
-	return styles[rand.Intn(len(styles))]
-}
-
-func CreateLine(blah Blah, selectedCommit *models.Commit) Line {
-	paths := blah.paths
-	commit := blah.commit
-	pos := blah.pos
-	newPathPos := blah.newPathPos
-
-	cellLength := len(paths)
-	if newPathPos > cellLength-1 {
-		cellLength = newPathPos + 1
-	}
-	maxPrevPos := getMaxPrevPosition(paths)
-	if maxPrevPos > cellLength-1 {
-		cellLength = maxPrevPos + 1
+func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) ([]PipeSet, []string, int, int) {
+	if len(commits) == 0 {
+		return nil, nil, 0, 0
 	}
 
-	isSelected := equalHashes(commit.Sha, selectedCommit.Sha)
-	isParentOfSelected := false
-	for _, parentSha := range selectedCommit.Parents {
-		if equalHashes(parentSha, commit.Sha) {
-			isParentOfSelected = true
+	// arbitrarily capping capacity at 20
+	paths := make([]Path, 0, 20)
+	paths = append(paths, Path{from: "START", to: commits[0].Sha, styleIndex: getNextStyleIndexForPath(paths)})
+
+	// arbitrarily capping capacity at 20
+	pipeSets := []PipeSet{}
+	startOfSelection := -1
+	endOfSelection := -1
+	for _, commit := range commits {
+		nextPaths := getNextPaths(paths, commit)
+		pipes := getPipesFromPaths(paths, nextPaths, commit.Sha)
+		paths = nextPaths
+		pipeSets = append(pipeSets, PipeSet{pipes: pipes, isMerge: commit.IsMerge()})
+	}
+
+	for i, pipeSet := range pipeSets {
+		if pipeSet.ContainsCommitSha((selectedCommit.Sha)) {
+			if startOfSelection == -1 {
+				startOfSelection = i
+			}
+			endOfSelection = i
+		} else if endOfSelection != -1 {
 			break
 		}
 	}
 
-	cells := make([]*Cell, cellLength)
-	for i := 0; i < cellLength; i++ {
-		cells[i] = &Cell{style: style.FgWhite}
-	}
-	if isSelected || isParentOfSelected {
-		cells[pos].setHighlight()
-	}
-	if commit.IsMerge() {
-		cells[pos].setType(MERGE).setRight(isSelected)
-		cells[newPathPos].setLeft(isSelected).setDown(isSelected)
-		for i := pos + 1; i < newPathPos; i++ {
-			cells[i].setLeft(isSelected).setRight(isSelected)
-		}
-	} else {
-		cells[pos].setType(COMMIT)
-	}
+	lines := RenderAux(pipeSets, selectedCommit.Sha)
 
-	connectHorizontal := func(x1, x2 int, highlight bool, style style.TextStyle) {
-		cells[x1].setRight(highlight).setStyle(style)
-		cells[x2].setLeft(highlight).setStyle(style)
-		for i := x1 + 1; i < x2; i++ {
-			cells[i].setLeft(highlight).setRight(highlight).setStyle(style)
-		}
-	}
-
-	for i, path := range paths {
-		// get path from previous to current position
-		highlightPath := equalHashes(path.from, selectedCommit.Sha)
-		cells[path.prevPos].setUp(highlightPath)
-		if path.prevPos != i {
-			connectHorizontal(i, path.prevPos, highlightPath, path.style)
-		}
-
-		if equalHashes(path.to, commit.Sha) {
-			if i == pos {
-				continue
-			}
-			connectHorizontal(pos, i, highlightPath, path.style)
-		} else {
-			// check this
-			cells[i].setDown(highlightPath).setStyle(path.style)
-		}
-	}
-
-	line := Line{Content: "", IsHighlighted: false}
-	for _, cell := range cells {
-		line.Content += cell.render()
-		if cell.isHighlighted() {
-			line.IsHighlighted = true
-		}
-	}
-
-	return line
+	return pipeSets, lines, startOfSelection, endOfSelection
 }
 
-type Blah struct {
-	commit     *models.Commit
-	paths      []Path
-	pos        int
-	newPathPos int
+func RenderAux(pipeSets []PipeSet, selectedCommitSha string) []string {
+	lines := make([]string, 0, len(pipeSets))
+	for _, pipeSet := range pipeSets {
+		cells := getCellsFromPipeSet(pipeSet, selectedCommitSha)
+		line := ""
+		for _, cell := range cells {
+			line += cell.render()
+		}
+		lines = append(lines, line)
+	}
+	return lines
 }
 
-func renderLine(commit *models.Commit, paths []Path, selectedCommit *models.Commit) (Line, Blah, []Path) {
+func getNextPaths(paths []Path, commit *models.Commit) []Path {
 	pos := -1
-	terminating := 0
 	for i, path := range paths {
 		if equalHashes(path.to, commit.Sha) {
-			// if we haven't seen this before, what do we do? Treat it like it's got random parents?
 			if pos == -1 {
 				pos = i
 			}
-			terminating++
 		}
 	}
-	if pos == -1 {
-		// this can happen when doing `git log --all`
-		pos = len(paths)
-		// pick a random style
-		paths = append(paths, Path{from: "START", to: commit.Sha, prevPos: pos, style: getRandStyle()})
-	}
 
-	// find the first position available if you're a merge commit
-	newPathPos := -1
-	if commit.IsMerge() {
-		newPathPos = len(paths) - terminating + 1
-	}
+	nextColour := getNextStyleIndexForPath(paths)
 
-	blah := Blah{commit: commit, paths: paths, pos: pos, newPathPos: newPathPos}
-	line := CreateLine(blah, selectedCommit)
+	// fmt.Println("commit: " + commit.Sha)
+	// fmt.Println("paths")
+	// fmt.Println(spew.Sdump(paths))
 
-	paths[pos] = Path{from: commit.Sha, to: commit.Parents[0], prevPos: pos, style: getRandStyle()}
-	newPaths := make([]Path, 0, len(paths)+1)
+	newPaths := make([]Path, 0, len(paths))
 	for i, path := range paths {
-		if !equalHashes(path.to, commit.Sha) {
-			path.prevPos = i
+		if path.from == "GHOST" {
+			continue
+		}
+		if equalHashes(path.to, commit.Sha) {
+			if i == pos {
+				newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[0], styleIndex: nextColour})
+			} else {
+				newPaths = append(newPaths, Path{from: "GHOST", to: "GHOST", styleIndex: nextColour})
+			}
+		} else {
 			newPaths = append(newPaths, path)
+			for j := len(newPaths); j < i+1; j++ {
+				newPaths = append(newPaths, Path{from: "GHOST", to: "GHOST", styleIndex: nextColour})
+			}
 		}
 	}
-	if commit.IsMerge() {
-		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[1], prevPos: newPathPos, style: getRandStyle()})
+
+	if pos == -1 {
+		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[0], styleIndex: nextColour})
 	}
 
-	return line, blah, newPaths
+	if commit.IsMerge() {
+	outer:
+		for _, parentSha := range commit.Parents[1:] {
+			// we are allowed to overwrite a ghost here
+			for i, path := range newPaths {
+				if path.from == "GHOST" {
+					// fmt.Println("replacing ghost for " + parentSha)
+					newPaths[i] = Path{from: commit.Sha, to: parentSha, styleIndex: nextColour}
+					continue outer
+				}
+			}
+			newPaths = append(newPaths, Path{from: commit.Sha, to: parentSha, styleIndex: nextColour})
+		}
+	}
+
+	// fmt.Println("new paths")
+	// fmt.Println(spew.Sdump(newPaths))
+
+	return newPaths
+}
+
+func getPipesFromPaths(beforePaths []Path, afterPaths []Path, commitSha string) []Pipe {
+	// we can never add more than one pipe at a time
+	pipes := make([]Pipe, 0, len(beforePaths)+1)
+
+	matched := map[string]bool{}
+
+	commitPos := -1
+	for i, path := range beforePaths {
+		if equalHashes(path.to, commitSha) {
+			commitPos = i
+			break
+		}
+	}
+	if commitPos == -1 {
+		for i, path := range afterPaths {
+			if equalHashes(path.from, commitSha) {
+				commitPos = i
+				break
+			}
+		}
+	}
+
+	key := func(path Path) string {
+		return path.from + "-" + path.to
+	}
+
+outer:
+	for i, beforePath := range beforePaths {
+		if beforePath.from == "GHOST" {
+			continue
+		}
+		for j, afterPath := range afterPaths {
+			if afterPath.from == "GHOST" {
+				continue
+			}
+			if beforePath.from == afterPath.from && beforePath.to == afterPath.to {
+				// see if I can honour this line being blocked by other lines
+				pipes = append(pipes, Pipe{fromPos: i, toPos: j, kind: CONTINUES, style: getStyle(beforePath.styleIndex), sourceCommitSha: beforePath.from})
+				matched[key(afterPath)] = true
+				continue outer
+			}
+		}
+		pipes = append(pipes, Pipe{fromPos: i, toPos: commitPos, kind: TERMINATES, style: getStyle(beforePath.styleIndex), sourceCommitSha: beforePath.from})
+	}
+
+	for i, afterPath := range afterPaths {
+		if afterPath.from == "GHOST" {
+			continue
+		}
+		if !matched[key(afterPath)] {
+			pipes = append(pipes, Pipe{fromPos: commitPos, toPos: i, kind: STARTS, style: getStyle(afterPath.styleIndex), sourceCommitSha: afterPath.from})
+		}
+	}
+
+	return pipes
+}
+
+func getCellsFromPipeSet(pipeSet PipeSet, selectedCommitSha string) []*Cell {
+	pipes := pipeSet.pipes
+	isMerge := pipeSet.isMerge
+
+	pos := 0
+	var sourcePipe Pipe
+	for _, pipe := range pipes {
+		if pipe.kind == STARTS {
+			pos = pipe.fromPos
+			sourcePipe = pipe
+		} else if pipe.kind == TERMINATES {
+			pos = pipe.toPos
+		}
+	}
+
+	maxPos := 0
+	for _, pipe := range pipes {
+		if pipe.right() > maxPos {
+			maxPos = pipe.right()
+		}
+	}
+	cells := make([]*Cell, maxPos+1)
+	for i := range cells {
+		cells[i] = &Cell{cellType: CONNECTION, style: style.FgDefault}
+	}
+
+	renderPipe := func(pipe Pipe, style style.TextStyle) {
+		left := pipe.left()
+		right := pipe.right()
+
+		if left != right {
+			for i := left + 1; i < right; i++ {
+				cells[i].setLeft(style).setRight(style)
+			}
+			cells[left].setRight(style)
+			cells[right].setLeft(style)
+		}
+
+		if pipe.kind == STARTS || pipe.kind == CONTINUES {
+			cells[pipe.toPos].setDown(style)
+		}
+		if pipe.kind == TERMINATES || pipe.kind == CONTINUES {
+			cells[pipe.fromPos].setUp(style)
+		}
+	}
+
+	// so we have our pos again, now it's time to build the cells.
+	// we'll handle the one that's sourced from our selected commit last so that it can override the other cells.
+	selectedPipes := []Pipe{}
+
+	selectionCount := 0
+	for _, pipe := range pipes {
+		if equalHashes(pipe.sourceCommitSha, selectedCommitSha) {
+			selectionCount++
+		}
+	}
+
+	for _, pipe := range pipes {
+		if equalHashes(pipe.sourceCommitSha, selectedCommitSha) {
+			selectedPipes = append(selectedPipes, pipe)
+		} else {
+			s := pipe.style
+			if selectionCount > 2 {
+				s = style.FgBlack
+			}
+			renderPipe(pipe, s)
+		}
+	}
+
+	if len(selectedPipes) > 0 {
+		for _, pipe := range selectedPipes {
+			for i := pipe.left(); i <= pipe.right(); i++ {
+				cells[i].reset()
+			}
+		}
+		for _, pipe := range selectedPipes {
+			renderPipe(pipe, pipe.style.SetBold())
+		}
+	}
+
+	commitSelected := false
+	for _, pipe := range pipes {
+		if pipe.sourceCommitSha
+	}
+
+	cType := COMMIT
+	if isMerge {
+		cType = MERGE
+	}
+
+	cells[pos].setType(cType)
+	if selectionCount > 1 &&  {
+		cells[pos].setStyle(sourcePipe.style)
+	}
+
+	return cells
+}
+
+func equalHashes(a, b string) bool {
+	length := utils.Min(len(a), len(b))
+	// parent hashes are only stored up to 20 characters for some reason so we'll truncate to that for comparison
+	return a[:length] == b[:length]
 }
 
 // instead of taking the previous path array and rendering the current line, we take the previous and next path arrays and render the current line.
@@ -320,41 +378,3 @@ func newLogger() *logrus.Entry {
 }
 
 var Log = newLogger()
-
-func getBoxDrawingChars(up, down, left, right bool) (rune, rune) {
-	if up && down && left && right {
-		return '┼', '─'
-	} else if up && down && left && !right {
-		return '┤', ' '
-	} else if up && down && !left && right {
-		return '│', '─'
-	} else if up && down && !left && !right {
-		return '│', ' '
-	} else if up && !down && left && right {
-		return '┴', '─'
-	} else if up && !down && left && !right {
-		return '┘', ' '
-	} else if up && !down && !left && right {
-		return '└', '─'
-	} else if up && !down && !left && !right {
-		return '└', ' '
-	} else if !up && down && left && right {
-		return '┬', '─'
-	} else if !up && down && left && !right {
-		return '┐', ' '
-	} else if !up && down && !left && right {
-		return '┌', '─'
-	} else if !up && down && !left && !right {
-		return '╷', ' '
-	} else if !up && !down && left && right {
-		return '─', '─'
-	} else if !up && !down && left && !right {
-		return '─', ' '
-	} else if !up && !down && !left && right {
-		return '╶', '─'
-	} else if !up && !down && !left && !right {
-		return ' ', ' '
-	} else {
-		panic("should not be possible")
-	}
-}
