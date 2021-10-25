@@ -4,6 +4,13 @@ import (
 	"strings"
 	"sync"
 
+	"crypto/md5"
+	"os"
+	"strings"
+	"sync"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/gookit/color"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/authors"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/graph"
@@ -11,9 +18,12 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/theme"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/kyokomi/emoji/v2"
+	colorful "github.com/lucasb-eyer/go-colorful"
+	"github.com/mattn/go-runewidth"
+	"github.com/sirupsen/logrus"
 )
 
-var lastBlahs = []graph.Blah{}
+var lastPipeSets []graph.PipeSet
 var OldStart int = -1
 var OldEnd int = -1
 var mutex sync.Mutex
@@ -43,13 +53,14 @@ func ResetOldCommitLines(
 		return [][]string{}
 	}
 
+	// TODO: off by one error?
+	graphLines := graph.RenderAux(lastPipeSets[OldStart:OldEnd+1], selectedCommit.Sha)
+
 	// need to make use of lastBlahs
-	blahs := lastBlahs
 	for i := OldStart; i <= OldEnd && i < len(commits); i++ {
 		commit := commits[i]
-		line := graph.CreateLine(blahs[i], selectedCommit)
 		diffed := commit.Sha == diffName
-		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.Content))
+		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i-OldStart]))
 	}
 
 	return lines
@@ -75,22 +86,40 @@ func SetNewSelection(
 		displayFunc = getDisplayStringsForCommit
 	}
 
-	// need to make use of lastBlahs
-	blahs := lastBlahs
-	OldStart = index
+	end := index
 	for i := index; i < len(commits); i++ {
-		commit := commits[i]
-		line := graph.CreateLine(blahs[i], selectedCommit)
-		if !line.IsHighlighted {
+		if !lastPipeSets[i].ContainsCommitSha(selectedCommit.Sha) {
+			end = i - 1
 			break
 		}
-		diffed := commit.Sha == diffName
-		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, line.Content))
-		OldEnd = i
 	}
 
+	graphLines := graph.RenderAux(lastPipeSets[index:end+1], selectedCommit.Sha)
+
+	for i := index; i <= end; i++ {
+		commit := commits[i]
+		diffed := commit.Sha == diffName
+		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i-index]))
+	}
+
+	OldStart = index
+	OldEnd = end
 	return lines
 }
+
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()
 
 func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool, cherryPickedCommitShaMap map[string]bool, diffName string, parseEmoji bool, selectedCommit *models.Commit) [][]string {
 	mutex.Lock()
@@ -104,23 +133,15 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 		displayFunc = getDisplayStringsForCommit
 	}
 
-	blahs, graphLines := graph.RenderCommitGraph(commits, selectedCommit)
-	OldStart = -1
-	OldEnd = -1
-	for i, line := range graphLines {
-		if line.IsHighlighted && OldStart == -1 {
-			OldStart = i
-		}
-		if OldStart != -1 && !line.IsHighlighted {
-			OldEnd = i
-			break
-		}
-	}
-	lastBlahs = blahs
+	pipeSets, graphLines, start, end := graph.RenderCommitGraph(commits, selectedCommit)
+	Log.Warn(spew.Sdump(graphLines[0:10]))
+	lastPipeSets = pipeSets
+	OldStart = start
+	OldEnd = end
 
 	for i, commit := range commits {
 		diffed := commit.Sha == diffName
-		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i].Content)
+		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i])
 	}
 
 	return lines
