@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
+	"github.com/jesseduffield/lazygit/pkg/gui/presentation/authors"
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -29,9 +30,9 @@ func (self PipeSet) ContainsCommitSha(sha string) bool {
 }
 
 type Path struct {
-	from       string
-	to         string
-	styleIndex int
+	from  string
+	to    string
+	style style.TextStyle
 }
 
 func (p Path) id() string {
@@ -63,36 +64,6 @@ func (self Pipe) right() int {
 	return utils.Max(self.fromPos, self.toPos)
 }
 
-var styles = []style.TextStyle{
-	style.FgDefault,
-	style.FgCyan,
-	style.FgBlue,
-	style.FgGreen,
-	style.FgYellow,
-	style.FgMagenta,
-	style.FgRed,
-}
-
-func getNextStyleIndex(index int) int {
-	if index == len(styles)-1 {
-		return 0
-	} else {
-		return index + 1
-	}
-}
-
-func getNextStyleIndexForPath(paths []Path) int {
-	if len(paths) == 0 {
-		return 0
-	}
-
-	return getNextStyleIndex(paths[len(paths)-1].styleIndex)
-}
-
-func getStyle(index int) style.TextStyle {
-	return styles[index]
-}
-
 func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) ([]PipeSet, []string, int, int) {
 	if len(commits) == 0 {
 		return nil, nil, 0, 0
@@ -100,7 +71,7 @@ func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) 
 
 	// arbitrarily capping capacity at 20
 	paths := make([]Path, 0, 20)
-	paths = append(paths, Path{from: "START", to: commits[0].Sha, styleIndex: getNextStyleIndexForPath(paths)})
+	paths = append(paths, Path{from: "START", to: commits[0].Sha, style: authors.AuthorStyle(commits[0].Author)})
 
 	// arbitrarily capping capacity at 20
 	pipeSets := []PipeSet{}
@@ -152,7 +123,7 @@ func getNextPaths(paths []Path, commit *models.Commit) []Path {
 		}
 	}
 
-	nextColour := getNextStyleIndexForPath(paths)
+	nextColour := authors.AuthorStyle(commit.Author)
 
 	// fmt.Println("commit: " + commit.Sha)
 	// fmt.Println("paths")
@@ -165,20 +136,20 @@ func getNextPaths(paths []Path, commit *models.Commit) []Path {
 		}
 		if equalHashes(path.to, commit.Sha) {
 			if i == pos {
-				newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[0], styleIndex: nextColour})
+				newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[0], style: nextColour})
 			} else {
-				newPaths = append(newPaths, Path{from: "GHOST", to: "GHOST", styleIndex: nextColour})
+				newPaths = append(newPaths, Path{from: "GHOST", to: "GHOST", style: nextColour})
 			}
 		} else {
 			newPaths = append(newPaths, path)
 			for j := len(newPaths); j < i+1; j++ {
-				newPaths = append(newPaths, Path{from: "GHOST", to: "GHOST", styleIndex: nextColour})
+				newPaths = append(newPaths, Path{from: "GHOST", to: "GHOST", style: nextColour})
 			}
 		}
 	}
 
 	if pos == -1 {
-		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[0], styleIndex: nextColour})
+		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[0], style: nextColour})
 	}
 
 	if commit.IsMerge() {
@@ -188,11 +159,11 @@ func getNextPaths(paths []Path, commit *models.Commit) []Path {
 			for i, path := range newPaths {
 				if path.from == "GHOST" {
 					// fmt.Println("replacing ghost for " + parentSha)
-					newPaths[i] = Path{from: commit.Sha, to: parentSha, styleIndex: nextColour}
+					newPaths[i] = Path{from: commit.Sha, to: parentSha, style: nextColour}
 					continue outer
 				}
 			}
-			newPaths = append(newPaths, Path{from: commit.Sha, to: parentSha, styleIndex: nextColour})
+			newPaths = append(newPaths, Path{from: commit.Sha, to: parentSha, style: nextColour})
 		}
 	}
 
@@ -239,12 +210,12 @@ outer:
 			}
 			if beforePath.from == afterPath.from && beforePath.to == afterPath.to {
 				// see if I can honour this line being blocked by other lines
-				pipes = append(pipes, Pipe{fromPos: i, toPos: j, kind: CONTINUES, style: getStyle(beforePath.styleIndex), sourceCommitSha: beforePath.from})
+				pipes = append(pipes, Pipe{fromPos: i, toPos: j, kind: CONTINUES, style: beforePath.style, sourceCommitSha: beforePath.from})
 				matched[key(afterPath)] = true
 				continue outer
 			}
 		}
-		pipes = append(pipes, Pipe{fromPos: i, toPos: commitPos, kind: TERMINATES, style: getStyle(beforePath.styleIndex), sourceCommitSha: beforePath.from})
+		pipes = append(pipes, Pipe{fromPos: i, toPos: commitPos, kind: TERMINATES, style: beforePath.style, sourceCommitSha: beforePath.from})
 	}
 
 	for i, afterPath := range afterPaths {
@@ -252,7 +223,7 @@ outer:
 			continue
 		}
 		if !matched[key(afterPath)] {
-			pipes = append(pipes, Pipe{fromPos: commitPos, toPos: i, kind: STARTS, style: getStyle(afterPath.styleIndex), sourceCommitSha: afterPath.from})
+			pipes = append(pipes, Pipe{fromPos: commitPos, toPos: i, kind: STARTS, style: afterPath.style, sourceCommitSha: afterPath.from})
 		}
 	}
 
@@ -335,7 +306,7 @@ func getCellsFromPipeSet(pipeSet PipeSet, selectedCommitSha string) []*Cell {
 			}
 		}
 		for _, pipe := range selectedPipes {
-			renderPipe(pipe, pipe.style.SetBold())
+			renderPipe(pipe, style.FgLightWhite.SetBold())
 		}
 	}
 
