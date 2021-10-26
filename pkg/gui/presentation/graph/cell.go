@@ -92,9 +92,9 @@ func (cell *Cell) setType(cellType cellType) *Cell {
 
 func getBoxDrawingChars(up, down, left, right bool) (rune, rune) {
 	if up && down && left && right {
-		return '┼', '─'
+		return '│', '─'
 	} else if up && down && left && !right {
-		return '┤', ' '
+		return '│', ' '
 	} else if up && down && !left && right {
 		return '│', '─'
 	} else if up && down && !left && !right {
