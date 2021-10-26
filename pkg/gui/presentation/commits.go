@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/gookit/color"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/authors"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/graph"
@@ -18,8 +17,6 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/theme"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/kyokomi/emoji/v2"
-	colorful "github.com/lucasb-eyer/go-colorful"
-	"github.com/mattn/go-runewidth"
 	"github.com/sirupsen/logrus"
 )
 
@@ -172,7 +169,7 @@ func getFullDescriptionDisplayStringsForCommit(c *models.Commit, cherryPickedCom
 	}
 
 	tagString := ""
-	secondColumnString := style.FgBlue.Sprint(utils.UnixToDate(c.UnixTimestamp))
+	secondColumnString := ""
 	if c.Action != "" {
 		secondColumnString = actionColorMap(c.Action).Sprint(c.Action)
 	} else if c.ExtraInfo != "" {
@@ -184,10 +181,12 @@ func getFullDescriptionDisplayStringsForCommit(c *models.Commit, cherryPickedCom
 		name = emoji.Sprint(name)
 	}
 
+	Log.Warn(authors.LongAuthor(c.Author))
+
 	return []string{
 		shaColor.Sprint(c.ShortSha()),
 		secondColumnString,
-		longAuthor(c.Author),
+		authors.LongAuthor(c.Author),
 		graphLine + tagString + theme.DefaultTextColor.Sprint(name),
 	}
 }
@@ -229,9 +228,11 @@ func getDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[s
 		name = emoji.Sprint(name)
 	}
 
+	Log.Warn(authors.ShortAuthor(c.Author))
+
 	return []string{
 		shaColor.Sprint(c.ShortSha()),
-		shortAuthor(c.Author),
+		authors.ShortAuthor(c.Author),
 		graphLine + actionString + tagString + theme.DefaultTextColor.Sprint(name),
 	}
 }

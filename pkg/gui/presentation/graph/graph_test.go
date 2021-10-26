@@ -4,9 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
-	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -82,8 +80,8 @@ func TestRenderCommitGraph(t *testing.T) {
 			expectedOutput: `
 			1 ⎔
 			2 ⏣─┐
-			3 ⏣─┼─┐
-			5 ⏣─┼─┼─┐
+			3 ⏣─│─┐
+			5 ⏣─│─│─┐
 			4 │ ⎔─┘ │
 			7 ⎔─┘ ┌─┘`,
 		},
@@ -101,9 +99,9 @@ func TestRenderCommitGraph(t *testing.T) {
 			expectedOutput: `
 			1 ⎔
 			2 ⏣─┐
-			3 ⏣─┼─┐
-			5 ⏣─┼─┼─┐
-			7 ⏣─┼─┼─┼─┐
+			3 ⏣─│─┐
+			5 ⏣─│─│─┐
+			7 ⏣─│─│─│─┐
 			4 ⎔─┴─┘ │ │
 			B ⎔ ┌───┘ │`,
 		},
@@ -119,9 +117,25 @@ func TestRenderCommitGraph(t *testing.T) {
 			expectedOutput: `
 			1 ⏣─┐
 			3 │ ⎔
-			2 ⏣─┤
-			4 ⏣─┼─┐
+			2 ⏣─│
+			4 ⏣─│─┐
 			6 ⎔ │ │`,
+		},
+		{
+			name: "new merge path fills gap before continuing path on right",
+			commits: []*models.Commit{
+				{Sha: "1", Parents: []string{"2", "3", "4", "5"}},
+				{Sha: "4", Parents: []string{"2"}},
+				{Sha: "2", Parents: []string{"A"}},
+				{Sha: "A", Parents: []string{"6", "B"}},
+				{Sha: "B", Parents: []string{"C"}},
+			},
+			expectedOutput: `
+			1 ⏣─┬─┬─┐
+			4 │ │ ⎔ │
+			2 ⎔─│─┘ │
+			A ⏣─│─┐ │
+			B │ │ ⎔ │`,
 		},
 	}
 
@@ -148,276 +162,276 @@ func TestRenderCommitGraph(t *testing.T) {
 	}
 }
 
-func TestGetCellsFromPipeSet(t *testing.T) {
-	tests := []struct {
-		pipeSet       PipeSet
-		expectedCells []*Cell
-	}{
-		// {
-		// 	pipeSet: PipeSet{
-		// 		pipes: []Pipe{
-		// 			{
-		// 				fromPos:         0,
-		// 				toPos:           0,
-		// 				kind:            STARTS,
-		// 				style:           style.FgDefault,
-		// 				sourceCommitSha: "a",
-		// 			},
-		// 			{
-		// 				fromPos:         0,
-		// 				toPos:           0,
-		// 				kind:            TERMINATES,
-		// 				style:           style.FgDefault,
-		// 				sourceCommitSha: "b",
-		// 			},
-		// 		},
-		// 		isMerge: false,
-		// 	},
-		// 	expectedCells: []*Cell{
-		// 		{
-		// 			up:       true,
-		// 			down:     true,
-		// 			cellType: COMMIT,
-		// 			style:    style.FgDefault,
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	pipeSet: PipeSet{
-		// 		pipes: []Pipe{
-		// 			{
-		// 				fromPos:         0,
-		// 				toPos:           0,
-		// 				kind:            CONTINUES,
-		// 				style:           style.FgDefault,
-		// 				sourceCommitSha: "a",
-		// 			},
-		// 			{
-		// 				fromPos:         1,
-		// 				toPos:           1,
-		// 				kind:            TERMINATES,
-		// 				style:           style.FgDefault,
-		// 				sourceCommitSha: "a",
-		// 			},
-		// 			{
-		// 				fromPos:         1,
-		// 				toPos:           1,
-		// 				kind:            STARTS,
-		// 				style:           style.FgDefault,
-		// 				sourceCommitSha: "b",
-		// 			},
-		// 		},
-		// 		isMerge: false,
-		// 	},
-		// 	expectedCells: []*Cell{
-		// 		{
-		// 			up:       true,
-		// 			down:     true,
-		// 			cellType: CONNECTION,
-		// 			style:    style.FgDefault,
-		// 		},
-		// 		{
-		// 			up:       true,
-		// 			down:     true,
-		// 			cellType: COMMIT,
-		// 			style:    style.FgDefault,
-		// 		},
-		// 	},
-		// },
-		{
-			pipeSet: PipeSet{
-				pipes: []Pipe{
-					{
-						fromPos:         0,
-						toPos:           0,
-						kind:            TERMINATES,
-						style:           style.FgDefault,
-						sourceCommitSha: "a",
-					},
-					{
-						fromPos:         0,
-						toPos:           0,
-						kind:            STARTS,
-						style:           style.FgDefault,
-						sourceCommitSha: "b",
-					},
-					{
-						fromPos:         0,
-						toPos:           2,
-						kind:            STARTS,
-						style:           style.FgDefault,
-						sourceCommitSha: "b",
-					},
-					{
-						fromPos:         1,
-						toPos:           1,
-						kind:            CONTINUES,
-						style:           style.FgDefault,
-						sourceCommitSha: "c",
-					},
-				},
-				isMerge: true,
-			},
-			expectedCells: []*Cell{
-				{
-					up:         true,
-					down:       true,
-					right:      true,
-					cellType:   MERGE,
-					style:      style.FgDefault,
-					rightStyle: &style.FgDefault,
-				},
-				{
-					up:         true,
-					down:       true,
-					left:       true,
-					right:      true,
-					cellType:   CONNECTION,
-					style:      style.FgDefault,
-					rightStyle: &style.FgDefault,
-				},
-				{
-					down:     true,
-					left:     true,
-					cellType: CONNECTION,
-					style:    style.FgDefault,
-				},
-			},
-		},
-		{
-			pipeSet: PipeSet{
-				pipes: []Pipe{
-					{
-						fromPos:         0,
-						toPos:           0,
-						kind:            TERMINATES,
-						style:           style.FgDefault,
-						sourceCommitSha: "a",
-					},
-					{
-						fromPos:         0,
-						toPos:           0,
-						kind:            STARTS,
-						style:           style.FgCyan,
-						sourceCommitSha: "selected",
-					},
-					{
-						fromPos:         0,
-						toPos:           2,
-						kind:            STARTS,
-						style:           style.FgCyan,
-						sourceCommitSha: "selected",
-					},
-					{
-						fromPos:         1,
-						toPos:           1,
-						kind:            CONTINUES,
-						style:           style.FgDefault,
-						sourceCommitSha: "c",
-					},
-				},
-				isMerge: true,
-			},
-			expectedCells: []*Cell{
-				{
-					up:         false,
-					down:       true,
-					right:      true,
-					cellType:   MERGE,
-					style:      style.FgCyan,
-					rightStyle: &style.FgCyan,
-				},
-				{
-					up:         false,
-					down:       false,
-					left:       true,
-					right:      true,
-					cellType:   CONNECTION,
-					style:      style.FgCyan,
-					rightStyle: &style.FgCyan,
-				},
-				{
-					down:     true,
-					left:     true,
-					cellType: CONNECTION,
-					style:    style.FgCyan,
-				},
-			},
-		},
-		{
-			pipeSet: PipeSet{
-				pipes: []Pipe{
-					{
-						fromPos:         0,
-						toPos:           0,
-						kind:            TERMINATES,
-						style:           style.FgGreen,
-						sourceCommitSha: "a",
-					},
-					{
-						fromPos:         0,
-						toPos:           0,
-						kind:            STARTS,
-						style:           style.FgYellow,
-						sourceCommitSha: "b",
-					},
-					{
-						fromPos:         0,
-						toPos:           2,
-						kind:            STARTS,
-						style:           style.FgYellow,
-						sourceCommitSha: "b",
-					},
-					{
-						fromPos:         1,
-						toPos:           1,
-						kind:            CONTINUES,
-						style:           style.FgDefault,
-						sourceCommitSha: "a",
-					},
-				},
-				isMerge: true,
-			},
-			expectedCells: []*Cell{
-				{
-					up:         true,
-					down:       true,
-					right:      true,
-					cellType:   MERGE,
-					style:      style.FgYellow,
-					rightStyle: &style.FgYellow,
-				},
-				{
-					up:         true,
-					down:       true,
-					left:       true,
-					right:      true,
-					cellType:   CONNECTION,
-					style:      style.FgGreen,
-					rightStyle: &style.FgYellow,
-				},
-				{
-					down:     true,
-					left:     true,
-					cellType: CONNECTION,
-					style:    style.FgYellow,
-				},
-			},
-		},
-	}
+// func TestGetCellsFromPipeSet(t *testing.T) {
+// 	tests := []struct {
+// 		pipeSet       PipeSet
+// 		expectedCells []*Cell
+// 	}{
+// {
+// 	pipeSet: PipeSet{
+// 		pipes: []Pipe{
+// 			{
+// 				fromPos:         0,
+// 				toPos:           0,
+// 				kind:            STARTS,
+// 				style:           style.FgDefault,
+// 				sourceCommitSha: "a",
+// 			},
+// 			{
+// 				fromPos:         0,
+// 				toPos:           0,
+// 				kind:            TERMINATES,
+// 				style:           style.FgDefault,
+// 				sourceCommitSha: "b",
+// 			},
+// 		},
+// 		isMerge: false,
+// 	},
+// 	expectedCells: []*Cell{
+// 		{
+// 			up:       true,
+// 			down:     true,
+// 			cellType: COMMIT,
+// 			style:    style.FgDefault,
+// 		},
+// 	},
+// },
+// {
+// 	pipeSet: PipeSet{
+// 		pipes: []Pipe{
+// 			{
+// 				fromPos:         0,
+// 				toPos:           0,
+// 				kind:            CONTINUES,
+// 				style:           style.FgDefault,
+// 				sourceCommitSha: "a",
+// 			},
+// 			{
+// 				fromPos:         1,
+// 				toPos:           1,
+// 				kind:            TERMINATES,
+// 				style:           style.FgDefault,
+// 				sourceCommitSha: "a",
+// 			},
+// 			{
+// 				fromPos:         1,
+// 				toPos:           1,
+// 				kind:            STARTS,
+// 				style:           style.FgDefault,
+// 				sourceCommitSha: "b",
+// 			},
+// 		},
+// 		isMerge: false,
+// 	},
+// 	expectedCells: []*Cell{
+// 		{
+// 			up:       true,
+// 			down:     true,
+// 			cellType: CONNECTION,
+// 			style:    style.FgDefault,
+// 		},
+// 		{
+// 			up:       true,
+// 			down:     true,
+// 			cellType: COMMIT,
+// 			style:    style.FgDefault,
+// 		},
+// 	},
+// },
+// 		{
+// 			pipeSet: PipeSet{
+// 				pipes: []Pipe{
+// 					{
+// 						fromPos:         0,
+// 						toPos:           0,
+// 						kind:            TERMINATES,
+// 						style:           style.FgDefault,
+// 						sourceCommitSha: "a",
+// 					},
+// 					{
+// 						fromPos:         0,
+// 						toPos:           0,
+// 						kind:            STARTS,
+// 						style:           style.FgDefault,
+// 						sourceCommitSha: "b",
+// 					},
+// 					{
+// 						fromPos:         0,
+// 						toPos:           2,
+// 						kind:            STARTS,
+// 						style:           style.FgDefault,
+// 						sourceCommitSha: "b",
+// 					},
+// 					{
+// 						fromPos:         1,
+// 						toPos:           1,
+// 						kind:            CONTINUES,
+// 						style:           style.FgDefault,
+// 						sourceCommitSha: "c",
+// 					},
+// 				},
+// 				isMerge: true,
+// 			},
+// 			expectedCells: []*Cell{
+// 				{
+// 					up:         true,
+// 					down:       true,
+// 					right:      true,
+// 					cellType:   MERGE,
+// 					style:      style.FgDefault,
+// 					rightStyle: &style.FgDefault,
+// 				},
+// 				{
+// 					up:         true,
+// 					down:       true,
+// 					left:       true,
+// 					right:      true,
+// 					cellType:   CONNECTION,
+// 					style:      style.FgDefault,
+// 					rightStyle: &style.FgDefault,
+// 				},
+// 				{
+// 					down:     true,
+// 					left:     true,
+// 					cellType: CONNECTION,
+// 					style:    style.FgDefault,
+// 				},
+// 			},
+// 		},
+// 		{
+// 			pipeSet: PipeSet{
+// 				pipes: []Pipe{
+// 					{
+// 						fromPos:         0,
+// 						toPos:           0,
+// 						kind:            TERMINATES,
+// 						style:           style.FgDefault,
+// 						sourceCommitSha: "a",
+// 					},
+// 					{
+// 						fromPos:         0,
+// 						toPos:           0,
+// 						kind:            STARTS,
+// 						style:           style.FgCyan,
+// 						sourceCommitSha: "selected",
+// 					},
+// 					{
+// 						fromPos:         0,
+// 						toPos:           2,
+// 						kind:            STARTS,
+// 						style:           style.FgCyan,
+// 						sourceCommitSha: "selected",
+// 					},
+// 					{
+// 						fromPos:         1,
+// 						toPos:           1,
+// 						kind:            CONTINUES,
+// 						style:           style.FgDefault,
+// 						sourceCommitSha: "c",
+// 					},
+// 				},
+// 				isMerge: true,
+// 			},
+// 			expectedCells: []*Cell{
+// 				{
+// 					up:         false,
+// 					down:       true,
+// 					right:      true,
+// 					cellType:   MERGE,
+// 					style:      style.FgCyan,
+// 					rightStyle: &style.FgCyan,
+// 				},
+// 				{
+// 					up:         false,
+// 					down:       false,
+// 					left:       true,
+// 					right:      true,
+// 					cellType:   CONNECTION,
+// 					style:      style.FgCyan,
+// 					rightStyle: &style.FgCyan,
+// 				},
+// 				{
+// 					down:     true,
+// 					left:     true,
+// 					cellType: CONNECTION,
+// 					style:    style.FgCyan,
+// 				},
+// 			},
+// 		},
+// 		{
+// 			pipeSet: PipeSet{
+// 				pipes: []Pipe{
+// 					{
+// 						fromPos:         0,
+// 						toPos:           0,
+// 						kind:            TERMINATES,
+// 						style:           style.FgGreen,
+// 						sourceCommitSha: "a",
+// 					},
+// 					{
+// 						fromPos:         0,
+// 						toPos:           0,
+// 						kind:            STARTS,
+// 						style:           style.FgYellow,
+// 						sourceCommitSha: "b",
+// 					},
+// 					{
+// 						fromPos:         0,
+// 						toPos:           2,
+// 						kind:            STARTS,
+// 						style:           style.FgYellow,
+// 						sourceCommitSha: "b",
+// 					},
+// 					{
+// 						fromPos:         1,
+// 						toPos:           1,
+// 						kind:            CONTINUES,
+// 						style:           style.FgDefault,
+// 						sourceCommitSha: "a",
+// 					},
+// 				},
+// 				isMerge: true,
+// 			},
+// 			expectedCells: []*Cell{
+// 				{
+// 					up:         true,
+// 					down:       true,
+// 					right:      true,
+// 					cellType:   MERGE,
+// 					style:      style.FgYellow,
+// 					rightStyle: &style.FgYellow,
+// 				},
+// 				{
+// 					up:         true,
+// 					down:       true,
+// 					left:       true,
+// 					right:      true,
+// 					cellType:   CONNECTION,
+// 					style:      style.FgGreen,
+// 					rightStyle: &style.FgYellow,
+// 				},
+// 				{
+// 					down:     true,
+// 					left:     true,
+// 					cellType: CONNECTION,
+// 					style:    style.FgYellow,
+// 				},
+// 			},
+// 		},
+// 	}
 
-	for _, test := range tests {
-		cells := getCellsFromPipeSet(test.pipeSet, "selected")
-		if len(cells) != len(test.expectedCells) {
-			t.Errorf("expected cells to be %s, got %s", spew.Sdump(test.expectedCells), spew.Sdump(cells))
-			continue
-		}
-		t.Log(spew.Sdump(cells))
-		for i, cell := range cells {
-			assert.EqualValues(t, test.expectedCells[i], cell)
-		}
-	}
-}
+// 	for _, test := range tests {
+// 		cells := getCellsFromPipeSet(test.pipeSet, "selected")
+// 		if len(cells) != len(test.expectedCells) {
+// 			t.Errorf("expected cells to be %s, got %s", spew.Sdump(test.expectedCells), spew.Sdump(cells))
+// 			continue
+// 		}
+// 		t.Log(spew.Sdump(cells))
+// 		for i, cell := range cells {
+// 			assert.EqualValues(t, test.expectedCells[i], cell)
+// 		}
+// 	}
+// }
 
 // func TestGetNextPaths(t *testing.T) {
 // 	tests := []struct {
