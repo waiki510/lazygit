@@ -253,7 +253,6 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 
 func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha string) []*Cell {
 	isMerge := commit.IsMerge()
-
 	pos := 0
 	for _, pipe := range pipes {
 		if pipe.kind == STARTS {
