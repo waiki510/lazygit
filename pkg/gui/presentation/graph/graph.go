@@ -83,7 +83,11 @@ func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha st
 	lines := make([]string, 0, len(pipeSets))
 	for i, pipeSet := range pipeSets {
 		Log.Warn(pipeSet[0].style)
-		cells := getCellsFromPipeSet(pipeSet, commits[i], selectedCommitSha)
+		var prevCommit *models.Commit
+		if i > 0 {
+			prevCommit = commits[i-1]
+		}
+		cells := getCellsFromPipeSet(pipeSet, commits[i], selectedCommitSha, prevCommit)
 		line := ""
 		for _, cell := range cells {
 			line += cell.render()
@@ -251,7 +255,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 	return newPipes
 }
 
-func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha string) []*Cell {
+func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha string, prevCommit *models.Commit) []*Cell {
 	isMerge := commit.IsMerge()
 	pos := 0
 	for _, pipe := range pipes {
@@ -297,8 +301,20 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 	// we'll handle the one that's sourced from our selected commit last so that it can override the other cells.
 	selectedPipes := []Pipe{}
 
+	// we don't want to highlight two commits if they're contiguous. We only want
+	// to highlight multiple things if there's an actual visible pipe involved.
+	highlight := true
+	if prevCommit != nil && equalHashes(prevCommit.Sha, selectedCommitSha) {
+		highlight = false
+		for _, pipe := range pipes {
+			if equalHashes(pipe.fromSha, selectedCommitSha) && (pipe.kind != TERMINATES || pipe.fromPos != pipe.toPos) {
+				highlight = true
+			}
+		}
+	}
+
 	for _, pipe := range pipes {
-		if equalHashes(pipe.fromSha, selectedCommitSha) {
+		if highlight && equalHashes(pipe.fromSha, selectedCommitSha) {
 			selectedPipes = append(selectedPipes, pipe)
 		} else {
 			renderPipe(pipe, pipe.style)
@@ -312,9 +328,10 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 			}
 		}
 		for _, pipe := range selectedPipes {
-			renderPipe(pipe, style.FgLightWhite.SetBold())
+			highlightStyle := style.FgLightWhite.SetBold()
+			renderPipe(pipe, highlightStyle)
 			if pipe.toPos == pos {
-				cells[pipe.toPos].setStyle(style.FgLightWhite.SetBold())
+				cells[pipe.toPos].setStyle(highlightStyle)
 			}
 		}
 	}
