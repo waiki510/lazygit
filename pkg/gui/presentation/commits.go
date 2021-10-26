@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/authors"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/graph"
@@ -50,10 +49,8 @@ func ResetOldCommitLines(
 		return [][]string{}
 	}
 
-	// TODO: off by one error?
 	graphLines := graph.RenderAux(lastPipeSets[OldStart:OldEnd+1], commits[OldStart:OldEnd+1], selectedCommit.Sha)
 
-	// need to make use of lastBlahs
 	for i := OldStart; i <= OldEnd && i < len(commits); i++ {
 		commit := commits[i]
 		diffed := commit.Sha == diffName
@@ -134,7 +131,6 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 		return authors.AuthorStyle(commit.Author)
 	}
 	pipeSets, graphLines, start, end := graph.RenderCommitGraph(commits, selectedCommit, getStyle)
-	Log.Warn(spew.Sdump(graphLines[0:10]))
 	lastPipeSets = pipeSets
 	OldStart = start
 	OldEnd = end
@@ -184,8 +180,6 @@ func getFullDescriptionDisplayStringsForCommit(c *models.Commit, cherryPickedCom
 		name = emoji.Sprint(name)
 	}
 
-	Log.Warn(authors.LongAuthor(c.Author))
-
 	return []string{
 		shaColor.Sprint(c.ShortSha()),
 		secondColumnString,
@@ -230,8 +224,6 @@ func getDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[s
 	if parseEmoji {
 		name = emoji.Sprint(name)
 	}
-
-	Log.Warn(authors.ShortAuthor(c.Author))
 
 	return []string{
 		shaColor.Sprint(c.ShortSha()),

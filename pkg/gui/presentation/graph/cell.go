@@ -24,7 +24,6 @@ func (cell *Cell) render() string {
 	up, down, left, right := cell.up, cell.down, cell.left, cell.right
 
 	first, second := getBoxDrawingChars(up, down, left, right)
-	// Log.Warn(string(first))
 	var adjustedFirst rune
 	switch cell.cellType {
 	case CONNECTION:
