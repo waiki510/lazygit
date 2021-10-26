@@ -339,10 +339,10 @@ func getCellsFromPipeSet(pipeSet PipeSet, selectedCommitSha string) []*Cell {
 		}
 	}
 
-	commitSelected := false
-	for _, pipe := range pipes {
-		if pipe.sourceCommitSha
-	}
+	// commitSelected := false
+	// for _, pipe := range pipes {
+	// 	// if pipe.sourceCommitSha
+	// }
 
 	cType := COMMIT
 	if isMerge {
@@ -350,7 +350,7 @@ func getCellsFromPipeSet(pipeSet PipeSet, selectedCommitSha string) []*Cell {
 	}
 
 	cells[pos].setType(cType)
-	if selectionCount > 1 &&  {
+	if selectionCount > 1 {
 		cells[pos].setStyle(sourcePipe.style)
 	}
 
