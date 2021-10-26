@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
+	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -142,7 +143,8 @@ func TestRenderCommitGraph(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			_, lines, _, _ := RenderCommitGraph(test.commits, &models.Commit{Sha: "blah"})
+			getStyle := func(c *models.Commit) style.TextStyle { return style.FgDefault }
+			_, lines, _, _ := RenderCommitGraph(test.commits, &models.Commit{Sha: "blah"}, getStyle)
 			output := ""
 			for i, line := range lines {
 				description := test.commits[i].Sha
@@ -471,37 +473,38 @@ func TestGetNextPipes(t *testing.T) {
 	}{
 		{
 			prevPipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: STARTS},
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: STARTS, style: style.FgDefault},
 			},
 			commit: &models.Commit{
 				Sha:     "b",
 				Parents: []string{"c"},
 			},
 			expected: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS},
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES},
+				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgDefault},
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgDefault},
 			},
 		},
 		{
 			prevPipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES},
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS},
-				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "d", kind: STARTS},
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgDefault},
+				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgDefault},
+				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "d", kind: STARTS, style: style.FgDefault},
 			},
 			commit: &models.Commit{
 				Sha:     "d",
 				Parents: []string{"e"},
 			},
 			expected: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: CONTINUES},
-				{fromPos: 1, toPos: 1, fromSha: "d", toSha: "e", kind: STARTS},
-				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES},
+				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: CONTINUES, style: style.FgDefault},
+				{fromPos: 1, toPos: 1, fromSha: "d", toSha: "e", kind: STARTS, style: style.FgDefault},
+				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES, style: style.FgDefault},
 			},
 		},
 	}
 
 	for _, test := range tests {
-		pipes := getNextPipes(test.prevPipes, test.commit)
+		getStyle := func(c *models.Commit) style.TextStyle { return style.FgDefault }
+		pipes := getNextPipes(test.prevPipes, test.commit, getStyle)
 		assert.EqualValues(t, test.expected, pipes)
 	}
 }

@@ -10,31 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Line struct {
-	IsHighlighted bool
-	Content       string
-}
-
-func ContainsCommitSha(pipes []Pipe, sha string) bool {
-	for _, pipe := range pipes {
-		if equalHashes(pipe.fromSha, sha) {
-			return true
-		}
-	}
-	return false
-}
-
-type Path struct {
-	from  string
-	to    string
-	style style.TextStyle
-}
-
-func (p Path) id() string {
-	// from will be unique per path
-	return p.from
-}
-
 type PipeKind uint8
 
 const (
@@ -49,7 +24,16 @@ type Pipe struct {
 	fromSha string
 	toSha   string
 	kind    PipeKind
-	// style   style.TextStyle
+	style   style.TextStyle
+}
+
+func ContainsCommitSha(pipes []Pipe, sha string) bool {
+	for _, pipe := range pipes {
+		if equalHashes(pipe.fromSha, sha) {
+			return true
+		}
+	}
+	return false
 }
 
 func (self Pipe) left() int {
@@ -64,18 +48,18 @@ func (self Pipe) forSha(sha string) bool {
 	return equalHashes(self.fromSha, sha) || equalHashes(self.toSha, sha)
 }
 
-func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit) ([][]Pipe, []string, int, int) {
+func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) ([][]Pipe, []string, int, int) {
 	if len(commits) == 0 {
 		return nil, nil, 0, 0
 	}
 
-	pipes := []Pipe{{fromPos: 0, toPos: 0, fromSha: "START", toSha: commits[0].Sha, kind: STARTS}}
+	pipes := []Pipe{{fromPos: 0, toPos: 0, fromSha: "START", toSha: commits[0].Sha, kind: STARTS, style: style.FgDefault}}
 
 	pipeSets := [][]Pipe{}
 	startOfSelection := -1
 	endOfSelection := -1
 	for _, commit := range commits {
-		pipes = getNextPipes(pipes, commit)
+		pipes = getNextPipes(pipes, commit, getStyle)
 		pipeSets = append(pipeSets, pipes)
 	}
 
@@ -108,9 +92,7 @@ func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha st
 	return lines
 }
 
-func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
-	// should potentially sort by toPos beforehand
-
+func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) []Pipe {
 	currentPipes := []Pipe{}
 	for _, pipe := range prevPipes {
 		if pipe.kind != TERMINATES {
@@ -119,7 +101,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
 	}
 
 	newPipes := []Pipe{}
-	// need to decide on where to put the commit based on the leftmost pipe
+	// TODO: need to decide on where to put the commit based on the leftmost pipe
 	// that goes to the commit
 	pos := -1
 	for _, pipe := range currentPipes {
@@ -143,6 +125,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
 			fromSha: commit.Sha,
 			toSha:   commit.Parents[0],
 			kind:    STARTS,
+			style:   getStyle(commit),
 		})
 	} else {
 		Log.Warn("pos is -1")
@@ -197,6 +180,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
 				fromSha: pipe.fromSha,
 				toSha:   pipe.toSha,
 				kind:    TERMINATES,
+				style:   pipe.style,
 			})
 			traverse(pipe.fromPos, pos)
 		} else if pipe.toPos < pos {
@@ -208,6 +192,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
 				fromSha: pipe.fromSha,
 				toSha:   pipe.toSha,
 				kind:    CONTINUES,
+				style:   pipe.style,
 			})
 			traverse(pipe.fromPos, availablePos)
 		}
@@ -223,6 +208,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
 				fromSha: commit.Sha,
 				toSha:   parent,
 				kind:    STARTS,
+				style:   getStyle(commit),
 			})
 
 			takenSpots[availablePos] = true
@@ -245,6 +231,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
 				fromSha: pipe.fromSha,
 				toSha:   pipe.toSha,
 				kind:    CONTINUES,
+				style:   pipe.style,
 			})
 			traverse(pipe.fromPos, last)
 		}
@@ -258,134 +245,15 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit) []Pipe {
 	return newPipes
 }
 
-// func getNextPaths(paths []Path, commit *models.Commit) []Path {
-// 	pos := -1
-// 	for i, path := range paths {
-// 		if equalHashes(path.to, commit.Sha) {
-// 			if pos == -1 {
-// 				pos = i
-// 			}
-// 		}
-// 	}
-
-// 	nextColour := authors.AuthorStyle(commit.Author)
-
-// 	// fmt.Println("commit: " + commit.Sha)
-// 	// fmt.Println("paths")
-// 	// fmt.Println(spew.Sdump(paths))
-
-// 	newPaths := make([]Path, 0, len(paths))
-// 	for _, path := range paths {
-// 		newPaths = append(newPaths, path)
-// 	}
-
-// 	if pos == -1 {
-// 		newPaths = append(newPaths, Path{from: commit.Sha, to: commit.Parents[0], style: nextColour})
-// 	} else {
-// 		newPaths[pos] = Path{from: commit.Sha, to: commit.Parents[0], style: nextColour}
-// 	}
-
-// 	if commit.IsMerge() {
-// 	outer:
-// 		for _, parentSha := range commit.Parents[1:] {
-// 			// we are allowed to overwrite a ghost here
-// 			for i, path := range newPaths {
-// 				if path.from == "GHOST" {
-// 					// fmt.Println("replacing ghost for " + parentSha)
-// 					newPaths[i] = Path{from: commit.Sha, to: parentSha, style: nextColour}
-// 					continue outer
-// 				}
-// 			}
-// 			newPaths = append(newPaths, Path{from: commit.Sha, to: parentSha, style: nextColour})
-// 		}
-// 	}
-
-// 	for i, path := range newPaths {
-// 		if path.from == "GHOST" {
-// 			continue
-// 		}
-// 		if equalHashes(path.to, commit.Sha) {
-// 			newPaths[i] = Path{from: "GHOST", to: "GHOST", style: nextColour}
-// 		} else {
-// 			newPaths[i] = path
-// 			for j := len(newPaths); j < i+1; j++ {
-// 				newPaths = append(newPaths, Path{from: "GHOST", to: "GHOST", style: nextColour})
-// 			}
-// 		}
-// 	}
-
-// 	// fmt.Println("new paths")
-// 	// fmt.Println(spew.Sdump(newPaths))
-
-// 	return newPaths
-// }
-
-// func getPipesFromPaths(beforePaths []Path, afterPaths []Path, commitSha string) []Pipe {
-// 	// we can never add more than one pipe at a time
-// 	pipes := make([]Pipe, 0, len(beforePaths)+1)
-
-// 	matched := map[string]bool{}
-
-// 	commitPos := -1
-// 	for i, path := range beforePaths {
-// 		if equalHashes(path.to, commitSha) {
-// 			commitPos = i
-// 			break
-// 		}
-// 	}
-// 	if commitPos == -1 {
-// 		for i, path := range afterPaths {
-// 			if equalHashes(path.from, commitSha) {
-// 				commitPos = i
-// 				break
-// 			}
-// 		}
-// 	}
-
-// 	key := func(path Path) string {
-// 		return path.from + "-" + path.to
-// 	}
-
-// outer:
-// 	for i, beforePath := range beforePaths {
-// 		if beforePath.from == "GHOST" {
-// 			continue
-// 		}
-// 		for j, afterPath := range afterPaths {
-// 			if afterPath.from == "GHOST" {
-// 				continue
-// 			}
-// 			if beforePath.from == afterPath.from && beforePath.to == afterPath.to {
-// 				// see if I can honour this line being blocked by other lines
-// 				pipes = append(pipes, Pipe{fromPos: i, toPos: j, kind: CONTINUES, style: beforePath.style, sourceCommitSha: beforePath.from})
-// 				matched[key(afterPath)] = true
-// 				continue outer
-// 			}
-// 		}
-// 		pipes = append(pipes, Pipe{fromPos: i, toPos: commitPos, kind: TERMINATES, style: beforePath.style, sourceCommitSha: beforePath.from})
-// 	}
-
-// 	for i, afterPath := range afterPaths {
-// 		if afterPath.from == "GHOST" {
-// 			continue
-// 		}
-// 		if !matched[key(afterPath)] {
-// 			pipes = append(pipes, Pipe{fromPos: commitPos, toPos: i, kind: STARTS, style: afterPath.style, sourceCommitSha: afterPath.from})
-// 		}
-// 	}
-
-// 	return pipes
-// }
-
 func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha string) []*Cell {
 	isMerge := commit.IsMerge()
 
 	pos := 0
-	// var sourcePipe Pipe
+	var sourcePipe Pipe
 	for _, pipe := range pipes {
 		if pipe.kind == STARTS {
 			pos = pipe.fromPos
-			// sourcePipe = pipe
+			sourcePipe = pipe
 		} else if pipe.kind == TERMINATES {
 			pos = pipe.toPos
 		}
@@ -437,10 +305,9 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 		if equalHashes(pipe.fromSha, selectedCommitSha) {
 			selectedPipes = append(selectedPipes, pipe)
 		} else {
-			// TODO: add dynamic styling by passing in sha-style mapping
-			s := style.FgDefault
+			s := pipe.style
 			if selectionCount > 2 {
-				s = style.FgBlack
+				s = style.FgDefault
 			}
 			renderPipe(pipe, s)
 		}
@@ -464,9 +331,9 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 	}
 
 	cells[pos].setType(cType)
-	// if selectionCount > 1 {
-	// 	cells[pos].setStyle(sourcePipe.style)
-	// }
+	if selectionCount > 1 {
+		cells[pos].setStyle(sourcePipe.style)
+	}
 
 	return cells
 }

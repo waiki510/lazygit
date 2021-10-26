@@ -126,7 +126,10 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 		displayFunc = getDisplayStringsForCommit
 	}
 
-	pipeSets, graphLines, start, end := graph.RenderCommitGraph(commits, selectedCommit)
+	getStyle := func(commit *models.Commit) style.TextStyle {
+		return authors.AuthorStyle(commit.Author)
+	}
+	pipeSets, graphLines, start, end := graph.RenderCommitGraph(commits, selectedCommit, getStyle)
 	Log.Warn(spew.Sdump(graphLines[0:10]))
 	lastPipeSets = pipeSets
 	OldStart = start
