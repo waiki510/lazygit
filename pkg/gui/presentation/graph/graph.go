@@ -13,8 +13,8 @@ import (
 type PipeKind uint8
 
 const (
-	STARTS PipeKind = iota
-	TERMINATES
+	TERMINATES PipeKind = iota
+	STARTS
 	CONTINUES
 )
 
@@ -82,6 +82,7 @@ func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, 
 func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha string) []string {
 	lines := make([]string, 0, len(pipeSets))
 	for i, pipeSet := range pipeSets {
+		Log.Warn(pipeSet[0].style)
 		cells := getCellsFromPipeSet(pipeSet, commits[i], selectedCommitSha)
 		line := ""
 		for _, cell := range cells {
@@ -94,10 +95,12 @@ func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha st
 
 func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) []Pipe {
 	currentPipes := []Pipe{}
+	maxPos := 0
 	for _, pipe := range prevPipes {
 		if pipe.kind != TERMINATES {
 			currentPipes = append(currentPipes, pipe)
 		}
+		maxPos = utils.Max(maxPos, pipe.toPos)
 	}
 
 	newPipes := []Pipe{}
@@ -116,20 +119,20 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 
 	takenSpots := make(map[int]bool)
 	traversedSpots := make(map[int]bool)
-	if pos != -1 {
+	if pos == -1 {
+		pos = maxPos + 1
 		takenSpots[pos] = true
 		traversedSpots[pos] = true
-		newPipes = append(newPipes, Pipe{
-			fromPos: pos,
-			toPos:   pos,
-			fromSha: commit.Sha,
-			toSha:   commit.Parents[0],
-			kind:    STARTS,
-			style:   getStyle(commit),
-		})
-	} else {
-		Log.Warn("pos is -1")
 	}
+
+	newPipes = append(newPipes, Pipe{
+		fromPos: pos,
+		toPos:   pos,
+		fromSha: commit.Sha,
+		toSha:   commit.Parents[0],
+		kind:    STARTS,
+		style:   getStyle(commit),
+	})
 
 	// TODO: deal with newly added commit
 
@@ -237,8 +240,11 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 		}
 	}
 
-	// not efficient but doing it for now: sorting my pipes by toPos
+	// not efficient but doing it for now: sorting my pipes by toPos, then by kind
 	sort.Slice(newPipes, func(i, j int) bool {
+		if newPipes[i].toPos == newPipes[j].toPos {
+			return newPipes[i].kind < newPipes[j].kind
+		}
 		return newPipes[i].toPos < newPipes[j].toPos
 	})
 
@@ -249,11 +255,9 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 	isMerge := commit.IsMerge()
 
 	pos := 0
-	var sourcePipe Pipe
 	for _, pipe := range pipes {
 		if pipe.kind == STARTS {
 			pos = pipe.fromPos
-			sourcePipe = pipe
 		} else if pipe.kind == TERMINATES {
 			pos = pipe.toPos
 		}
@@ -294,34 +298,25 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 	// we'll handle the one that's sourced from our selected commit last so that it can override the other cells.
 	selectedPipes := []Pipe{}
 
-	selectionCount := 0
-	for _, pipe := range pipes {
-		if equalHashes(pipe.fromSha, selectedCommitSha) {
-			selectionCount++
-		}
-	}
-
 	for _, pipe := range pipes {
 		if equalHashes(pipe.fromSha, selectedCommitSha) {
 			selectedPipes = append(selectedPipes, pipe)
 		} else {
-			s := pipe.style
-			if selectionCount > 2 {
-				s = style.FgDefault
-			}
-			renderPipe(pipe, s)
+			renderPipe(pipe, pipe.style)
 		}
 	}
 
 	if len(selectedPipes) > 0 {
 		for _, pipe := range selectedPipes {
-			Log.Warn(pipe.left())
 			for i := pipe.left(); i <= pipe.right(); i++ {
 				cells[i].reset()
 			}
 		}
 		for _, pipe := range selectedPipes {
 			renderPipe(pipe, style.FgLightWhite.SetBold())
+			if pipe.toPos == pos {
+				cells[pipe.toPos].setStyle(style.FgLightWhite.SetBold())
+			}
 		}
 	}
 
@@ -331,9 +326,6 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 	}
 
 	cells[pos].setType(cType)
-	if selectionCount > 1 {
-		cells[pos].setStyle(sourcePipe.style)
-	}
 
 	return cells
 }

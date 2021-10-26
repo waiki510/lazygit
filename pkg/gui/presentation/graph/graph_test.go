@@ -500,6 +500,20 @@ func TestGetNextPipes(t *testing.T) {
 				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES, style: style.FgDefault},
 			},
 		},
+		{
+			prevPipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "START", toSha: "A", kind: STARTS, style: style.FgDefault},
+			},
+			commit: &models.Commit{
+				Sha:     "A",
+				Parents: []string{"B"},
+			},
+			expected: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "A", toSha: "B", kind: CONTINUES, style: style.FgDefault},
+				{fromPos: 1, toPos: 1, fromSha: "d", toSha: "e", kind: STARTS, style: style.FgDefault},
+				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES, style: style.FgDefault},
+			},
+		},
 	}
 
 	for _, test := range tests {
