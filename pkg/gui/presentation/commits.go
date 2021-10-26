@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var lastPipeSets []graph.PipeSet
+var lastPipeSets [][]graph.Pipe
 var OldStart int = -1
 var OldEnd int = -1
 var mutex sync.Mutex
@@ -51,7 +51,7 @@ func ResetOldCommitLines(
 	}
 
 	// TODO: off by one error?
-	graphLines := graph.RenderAux(lastPipeSets[OldStart:OldEnd+1], selectedCommit.Sha)
+	graphLines := graph.RenderAux(lastPipeSets[OldStart:OldEnd+1], commits[OldStart:OldEnd+1], selectedCommit.Sha)
 
 	// need to make use of lastBlahs
 	for i := OldStart; i <= OldEnd && i < len(commits); i++ {
@@ -85,13 +85,13 @@ func SetNewSelection(
 
 	end := index
 	for i := index; i < len(commits); i++ {
-		if !lastPipeSets[i].ContainsCommitSha(selectedCommit.Sha) {
+		if !graph.ContainsCommitSha(lastPipeSets[i], selectedCommit.Sha) {
 			end = i - 1
 			break
 		}
 	}
 
-	graphLines := graph.RenderAux(lastPipeSets[index:end+1], selectedCommit.Sha)
+	graphLines := graph.RenderAux(lastPipeSets[index:end+1], commits[index:end+1], selectedCommit.Sha)
 
 	for i := index; i <= end; i++ {
 		commit := commits[i]
