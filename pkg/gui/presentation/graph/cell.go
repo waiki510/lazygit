@@ -137,11 +137,3 @@ func getBoxDrawingChars(up, down, left, right bool) (rune, rune) {
 		panic("should not be possible")
 	}
 }
-
-func renderCells(cells []*Cell) string {
-	var result string
-	for _, cell := range cells {
-		result += cell.render()
-	}
-	return result
-}
