@@ -41,7 +41,17 @@ func (cell *Cell) render() string {
 		rightStyle = cell.rightStyle
 	}
 
-	return cell.style.Sprint(string(adjustedFirst)) + rightStyle.Sprint(string(second))
+	// just doing this for the sake of easy testing, so that we don't need to
+	// assert on the style of a space given a space has no styling (assuming we
+	// stick to only using foreground styles)
+	var styledSecondChar string
+	if second == ' ' {
+		styledSecondChar = " "
+	} else {
+		styledSecondChar = rightStyle.Sprint(string(second))
+	}
+
+	return cell.style.Sprint(string(adjustedFirst)) + styledSecondChar
 }
 
 func (cell *Cell) reset() {

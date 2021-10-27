@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/utils"
@@ -216,13 +215,19 @@ func TestRenderCommitGraph(t *testing.T) {
 	}
 }
 
+type char struct {
+	ch    rune
+	style style.TextStyle
+}
+
 func TestGetCellsFromPipeSet(t *testing.T) {
 	tests := []struct {
-		name          string
-		pipes         []Pipe
-		commit        *models.Commit
-		prevCommit    *models.Commit
-		expectedCells []*Cell
+		name           string
+		pipes          []Pipe
+		commit         *models.Commit
+		prevCommit     *models.Commit
+		expectedStr    string
+		expectedStyles []style.TextStyle
 	}{
 		{
 			name: "single cell",
@@ -230,11 +235,10 @@ func TestGetCellsFromPipeSet(t *testing.T) {
 				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgCyan},
 				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgGreen},
 			},
-			commit:     &models.Commit{Sha: "b"},
-			prevCommit: &models.Commit{Sha: "a"},
-			expectedCells: []*Cell{
-				{up: false, down: true, left: false, right: false, cellType: COMMIT, style: style.FgGreen},
-			},
+			commit:         &models.Commit{Sha: "b"},
+			prevCommit:     &models.Commit{Sha: "a"},
+			expectedStr:    "⎔",
+			expectedStyles: []style.TextStyle{style.FgGreen},
 		},
 		{
 			name: "single cell, selected",
@@ -242,11 +246,10 @@ func TestGetCellsFromPipeSet(t *testing.T) {
 				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "selected", kind: TERMINATES, style: style.FgCyan},
 				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "c", kind: STARTS, style: style.FgGreen},
 			},
-			commit:     &models.Commit{Sha: "selected"},
-			prevCommit: &models.Commit{Sha: "a"},
-			expectedCells: []*Cell{
-				{up: false, down: true, left: false, right: false, cellType: COMMIT, style: highlightStyle},
-			},
+			commit:         &models.Commit{Sha: "selected"},
+			prevCommit:     &models.Commit{Sha: "a"},
+			expectedStr:    "⎔",
+			expectedStyles: []style.TextStyle{highlightStyle},
 		},
 		{
 			name: "terminating hook and starting hook, selected",
@@ -256,12 +259,10 @@ func TestGetCellsFromPipeSet(t *testing.T) {
 				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "d", kind: STARTS, style: style.FgGreen},
 				{fromPos: 0, toPos: 1, fromSha: "selected", toSha: "e", kind: STARTS, style: style.FgGreen},
 			},
-			commit:     &models.Commit{Sha: "selected"},
-			prevCommit: &models.Commit{Sha: "a"},
-			expectedCells: []*Cell{
-				{up: false, down: true, left: false, right: true, cellType: COMMIT, style: highlightStyle, rightStyle: &highlightStyle},
-				{up: false, down: true, left: true, right: false, cellType: CONNECTION, style: highlightStyle, rightStyle: nil},
-			},
+			commit:         &models.Commit{Sha: "selected"},
+			prevCommit:     &models.Commit{Sha: "a"},
+			expectedStr:    "⎔─┐",
+			expectedStyles: []style.TextStyle{highlightStyle, highlightStyle, highlightStyle},
 		},
 		{
 			name: "terminating hook and starting hook, prioritise the starting one",
@@ -271,12 +272,10 @@ func TestGetCellsFromPipeSet(t *testing.T) {
 				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "d", kind: STARTS, style: style.FgGreen},
 				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "e", kind: STARTS, style: style.FgGreen},
 			},
-			commit:     &models.Commit{Sha: "b"},
-			prevCommit: &models.Commit{Sha: "a"},
-			expectedCells: []*Cell{
-				{up: false, down: true, left: false, right: true, cellType: COMMIT, style: style.FgGreen, rightStyle: &style.FgGreen},
-				{up: true, down: true, left: true, right: false, cellType: CONNECTION, style: style.FgBlue, rightStyle: nil},
-			},
+			commit:         &models.Commit{Sha: "b"},
+			prevCommit:     &models.Commit{Sha: "a"},
+			expectedStr:    "⎔─│",
+			expectedStyles: []style.TextStyle{style.FgGreen, style.FgGreen, style.FgBlue},
 		},
 	}
 
@@ -285,16 +284,16 @@ func TestGetCellsFromPipeSet(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cells := getCellsFromPipeSet(test.pipes, test.commit, "selected", test.prevCommit)
 			t.Log("expected cells:")
-			t.Log(renderCells(test.expectedCells))
+			expectedStr := ""
+			for i, char := range []rune(test.expectedStr) {
+				expectedStr += test.expectedStyles[i].Sprint(string(char))
+			}
+			expectedStr += " "
+			t.Log(expectedStr)
 			t.Log("actual cells:")
-			t.Log(renderCells(cells))
-			if len(cells) != len(test.expectedCells) {
-				t.Errorf("expected cells to be %s, got %s", spew.Sdump(test.expectedCells), spew.Sdump(cells))
-				return
-			}
-			for i, cell := range cells {
-				assert.EqualValues(t, test.expectedCells[i], cell)
-			}
+			actualStr := renderCells(cells)
+			t.Log(actualStr)
+			assert.Equal(t, expectedStr, actualStr)
 		})
 	}
 }
@@ -311,7 +310,7 @@ func TestCellRender(t *testing.T) {
 				cellType: CONNECTION,
 				style:    style.FgDefault,
 			},
-			expectedString: "\x1b[39m│\x1b[0m\x1b[39m \x1b[0m",
+			expectedString: "\x1b[39m│\x1b[0m ",
 		},
 		{
 			cell: &Cell{
@@ -320,7 +319,7 @@ func TestCellRender(t *testing.T) {
 				cellType: COMMIT,
 				style:    style.FgDefault,
 			},
-			expectedString: "\x1b[39m⎔\x1b[0m\x1b[39m \x1b[0m",
+			expectedString: "\x1b[39m⎔\x1b[0m ",
 		},
 	}
 
