@@ -28,6 +28,8 @@ type Pipe struct {
 	style   style.TextStyle
 }
 
+var highlightStyle = style.FgLightWhite.SetBold()
+
 func ContainsCommitSha(pipes []Pipe, sha string) bool {
 	for _, pipe := range pipes {
 		if equalHashes(pipe.fromSha, sha) {
@@ -90,11 +92,7 @@ func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha st
 			prevCommit = commits[i-1]
 		}
 		cells := getCellsFromPipeSet(pipeSet, commits[i], selectedCommitSha, prevCommit)
-		line := ""
-		for _, cell := range cells {
-			line += cell.render()
-		}
-		lines = append(lines, line)
+		lines = append(lines, renderCells(cells))
 	}
 	return lines
 }
@@ -277,15 +275,15 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 		cells[i] = &Cell{cellType: CONNECTION, style: style.FgDefault}
 	}
 
-	renderPipe := func(pipe Pipe, style style.TextStyle) {
+	renderPipe := func(pipe Pipe, style style.TextStyle, overrideRightStyle bool) {
 		left := pipe.left()
 		right := pipe.right()
 
 		if left != right {
 			for i := left + 1; i < right; i++ {
-				cells[i].setLeft(style).setRight(style)
+				cells[i].setLeft(style).setRight(style, overrideRightStyle)
 			}
-			cells[left].setRight(style)
+			cells[left].setRight(style, overrideRightStyle)
 			cells[right].setLeft(style)
 		}
 
@@ -296,10 +294,6 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 			cells[pipe.fromPos].setUp(style)
 		}
 	}
-
-	// so we have our pos again, now it's time to build the cells.
-	// we'll handle the one that's sourced from our selected commit last so that it can override the other cells.
-	selectedPipes := []Pipe{}
 
 	// we don't want to highlight two commits if they're contiguous. We only want
 	// to highlight multiple things if there's an actual visible pipe involved.
@@ -313,11 +307,28 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 		}
 	}
 
+	// so we have our pos again, now it's time to build the cells.
+	// we'll handle the one that's sourced from our selected commit last so that it can override the other cells.
+	selectedPipes := []Pipe{}
+	nonSelectedPipes := []Pipe{}
+
 	for _, pipe := range pipes {
 		if highlight && equalHashes(pipe.fromSha, selectedCommitSha) {
 			selectedPipes = append(selectedPipes, pipe)
 		} else {
-			renderPipe(pipe, pipe.style)
+			nonSelectedPipes = append(nonSelectedPipes, pipe)
+		}
+	}
+
+	for _, pipe := range nonSelectedPipes {
+		if pipe.kind == STARTS {
+			renderPipe(pipe, pipe.style, true)
+		}
+	}
+
+	for _, pipe := range nonSelectedPipes {
+		if pipe.kind != STARTS && !(pipe.kind == TERMINATES && pipe.fromPos == pos && pipe.toPos == pos) {
+			renderPipe(pipe, pipe.style, false)
 		}
 	}
 
@@ -328,8 +339,7 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 			}
 		}
 		for _, pipe := range selectedPipes {
-			highlightStyle := style.FgLightWhite.SetBold()
-			renderPipe(pipe, highlightStyle)
+			renderPipe(pipe, highlightStyle, true)
 			if pipe.toPos == pos {
 				cells[pipe.toPos].setStyle(highlightStyle)
 			}

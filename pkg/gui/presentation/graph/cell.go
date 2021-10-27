@@ -72,10 +72,11 @@ func (cell *Cell) setLeft(style style.TextStyle) *Cell {
 	return cell
 }
 
-func (cell *Cell) setRight(style style.TextStyle) *Cell {
+func (cell *Cell) setRight(style style.TextStyle, override bool) *Cell {
 	cell.right = true
-	// TODO: should I set regular style here too?
-	cell.rightStyle = &style
+	if cell.rightStyle == nil || override {
+		cell.rightStyle = &style
+	}
 	return cell
 }
 
@@ -125,4 +126,12 @@ func getBoxDrawingChars(up, down, left, right bool) (rune, rune) {
 	} else {
 		panic("should not be possible")
 	}
+}
+
+func renderCells(cells []*Cell) string {
+	var result string
+	for _, cell := range cells {
+		result += cell.render()
+	}
+	return result
 }
