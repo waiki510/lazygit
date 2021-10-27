@@ -2,7 +2,7 @@ package graph
 
 import "github.com/jesseduffield/lazygit/pkg/gui/style"
 
-const mergeSymbol = '⏣' //Ɏ
+const mergeSymbol = '⏣'
 const commitSymbol = '⎔'
 
 type cellType int

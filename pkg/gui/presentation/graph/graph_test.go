@@ -139,6 +139,28 @@ func TestRenderCommitGraph(t *testing.T) {
 			A ⏣─│─┐ │
 			B │ │ ⎔ │`,
 		},
+		{
+			name: "with a path that has room to move to the left and continues",
+			commits: []*models.Commit{
+				{Sha: "1", Parents: []string{"2"}},
+				{Sha: "2", Parents: []string{"3", "4"}},
+				{Sha: "3", Parents: []string{"5", "4"}},
+				{Sha: "5", Parents: []string{"7", "8"}},
+				{Sha: "7", Parents: []string{"4", "A"}},
+				{Sha: "4", Parents: []string{"B"}},
+				{Sha: "B", Parents: []string{"C"}},
+				{Sha: "C", Parents: []string{"D"}},
+			},
+			expectedOutput: `
+			1 ⎔
+			2 ⏣─┐
+			3 ⏣─│─┐
+			5 ⏣─│─│─┐
+			7 ⏣─│─│─│─┐
+			4 ⎔─┴─┘ │ │
+			B ⎔ ┌───┘ │
+			C ⎔ │ ┌───┘`,
+		},
 	}
 
 	for _, test := range tests {
@@ -146,17 +168,20 @@ func TestRenderCommitGraph(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			getStyle := func(c *models.Commit) style.TextStyle { return style.FgDefault }
 			_, lines, _, _ := RenderCommitGraph(test.commits, &models.Commit{Sha: "blah"}, getStyle)
-			output := ""
-			for i, line := range lines {
-				description := test.commits[i].Sha
-				output += strings.TrimSpace(description+" "+utils.Decolorise(line)) + "\n"
-			}
-			t.Log("\n" + output)
 
 			trimmedExpectedOutput := ""
 			for _, line := range strings.Split(strings.TrimPrefix(test.expectedOutput, "\n"), "\n") {
 				trimmedExpectedOutput += strings.TrimSpace(line) + "\n"
 			}
+
+			t.Log("\nexpected: \n" + trimmedExpectedOutput)
+
+			output := ""
+			for i, line := range lines {
+				description := test.commits[i].Sha
+				output += strings.TrimSpace(description+" "+utils.Decolorise(line)) + "\n"
+			}
+			t.Log("\nactual: \n" + output)
 
 			assert.Equal(t,
 				trimmedExpectedOutput,
