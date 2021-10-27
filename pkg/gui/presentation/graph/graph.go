@@ -3,6 +3,7 @@ package graph
 import (
 	"os"
 	"sort"
+	"time"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
@@ -52,6 +53,7 @@ func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, 
 	if len(commits) == 0 {
 		return nil, nil, 0, 0
 	}
+	t := time.Now()
 
 	pipes := []Pipe{{fromPos: 0, toPos: 0, fromSha: "START", toSha: commits[0].Sha, kind: STARTS, style: style.FgDefault}}
 
@@ -75,6 +77,7 @@ func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, 
 	}
 
 	lines := RenderAux(pipeSets, commits, selectedCommit.Sha)
+	Log.Warn(t, time.Since(t))
 
 	return pipeSets, lines, startOfSelection, endOfSelection
 }
@@ -82,7 +85,6 @@ func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, 
 func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha string) []string {
 	lines := make([]string, 0, len(pipeSets))
 	for i, pipeSet := range pipeSets {
-		Log.Warn(pipeSet[0].style)
 		var prevCommit *models.Commit
 		if i > 0 {
 			prevCommit = commits[i-1]
@@ -137,8 +139,6 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 		kind:    STARTS,
 		style:   getStyle(commit),
 	})
-
-	// TODO: deal with newly added commit
 
 	otherMap := make(map[int]bool)
 	for _, pipe := range currentPipes {
