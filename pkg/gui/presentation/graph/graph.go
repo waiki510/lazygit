@@ -187,7 +187,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 				kind:    TERMINATES,
 				style:   pipe.style,
 			})
-			traverse(pipe.fromPos, pos)
+			traverse(pipe.toPos, pos)
 		} else if pipe.toPos < pos {
 			// continuing here
 			availablePos := getNextAvailablePos()
@@ -199,7 +199,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 				kind:    CONTINUES,
 				style:   pipe.style,
 			})
-			traverse(pipe.fromPos, availablePos)
+			traverse(pipe.toPos, availablePos)
 		}
 	}
 
@@ -226,7 +226,9 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 			// actually need to work backwards: can't just fill any gap: or can I?
 			last := pipe.toPos
 			for i := pipe.toPos; i > pos; i-- {
-				if !takenSpots[i] && !traversedSpots[i] {
+				if takenSpots[i] || traversedSpots[i] {
+					break
+				} else {
 					last = i
 				}
 			}
@@ -238,7 +240,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 				kind:    CONTINUES,
 				style:   pipe.style,
 			})
-			traverse(pipe.fromPos, last)
+			traverse(pipe.toPos, last)
 		}
 	}
 
