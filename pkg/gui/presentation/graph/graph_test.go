@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/utils"
@@ -164,361 +165,173 @@ func TestRenderCommitGraph(t *testing.T) {
 	}
 }
 
-// // func TestGetCellsFromPipeSet(t *testing.T) {
-// // 	tests := []struct {
-// // 		pipeSet       PipeSet
-// // 		expectedCells []*Cell
-// // 	}{
-// // {
-// // 	pipeSet: PipeSet{
-// // 		pipes: []Pipe{
-// // 			{
-// // 				fromPos:         0,
-// // 				toPos:           0,
-// // 				kind:            STARTS,
-// // 				style:           style.FgDefault,
-// // 				sourceCommitSha: "a",
-// // 			},
-// // 			{
-// // 				fromPos:         0,
-// // 				toPos:           0,
-// // 				kind:            TERMINATES,
-// // 				style:           style.FgDefault,
-// // 				sourceCommitSha: "b",
-// // 			},
-// // 		},
-// // 		isMerge: false,
-// // 	},
-// // 	expectedCells: []*Cell{
-// // 		{
-// // 			up:       true,
-// // 			down:     true,
-// // 			cellType: COMMIT,
-// // 			style:    style.FgDefault,
-// // 		},
-// // 	},
-// // },
-// // {
-// // 	pipeSet: PipeSet{
-// // 		pipes: []Pipe{
-// // 			{
-// // 				fromPos:         0,
-// // 				toPos:           0,
-// // 				kind:            CONTINUES,
-// // 				style:           style.FgDefault,
-// // 				sourceCommitSha: "a",
-// // 			},
-// // 			{
-// // 				fromPos:         1,
-// // 				toPos:           1,
-// // 				kind:            TERMINATES,
-// // 				style:           style.FgDefault,
-// // 				sourceCommitSha: "a",
-// // 			},
-// // 			{
-// // 				fromPos:         1,
-// // 				toPos:           1,
-// // 				kind:            STARTS,
-// // 				style:           style.FgDefault,
-// // 				sourceCommitSha: "b",
-// // 			},
-// // 		},
-// // 		isMerge: false,
-// // 	},
-// // 	expectedCells: []*Cell{
-// // 		{
-// // 			up:       true,
-// // 			down:     true,
-// // 			cellType: CONNECTION,
-// // 			style:    style.FgDefault,
-// // 		},
-// // 		{
-// // 			up:       true,
-// // 			down:     true,
-// // 			cellType: COMMIT,
-// // 			style:    style.FgDefault,
-// // 		},
-// // 	},
-// // },
-// // 		{
-// // 			pipeSet: PipeSet{
-// // 				pipes: []Pipe{
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           0,
-// // 						kind:            TERMINATES,
-// // 						style:           style.FgDefault,
-// // 						sourceCommitSha: "a",
-// // 					},
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           0,
-// // 						kind:            STARTS,
-// // 						style:           style.FgDefault,
-// // 						sourceCommitSha: "b",
-// // 					},
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           2,
-// // 						kind:            STARTS,
-// // 						style:           style.FgDefault,
-// // 						sourceCommitSha: "b",
-// // 					},
-// // 					{
-// // 						fromPos:         1,
-// // 						toPos:           1,
-// // 						kind:            CONTINUES,
-// // 						style:           style.FgDefault,
-// // 						sourceCommitSha: "c",
-// // 					},
-// // 				},
-// // 				isMerge: true,
-// // 			},
-// // 			expectedCells: []*Cell{
-// // 				{
-// // 					up:         true,
-// // 					down:       true,
-// // 					right:      true,
-// // 					cellType:   MERGE,
-// // 					style:      style.FgDefault,
-// // 					rightStyle: &style.FgDefault,
-// // 				},
-// // 				{
-// // 					up:         true,
-// // 					down:       true,
-// // 					left:       true,
-// // 					right:      true,
-// // 					cellType:   CONNECTION,
-// // 					style:      style.FgDefault,
-// // 					rightStyle: &style.FgDefault,
-// // 				},
-// // 				{
-// // 					down:     true,
-// // 					left:     true,
-// // 					cellType: CONNECTION,
-// // 					style:    style.FgDefault,
-// // 				},
-// // 			},
-// // 		},
-// // 		{
-// // 			pipeSet: PipeSet{
-// // 				pipes: []Pipe{
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           0,
-// // 						kind:            TERMINATES,
-// // 						style:           style.FgDefault,
-// // 						sourceCommitSha: "a",
-// // 					},
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           0,
-// // 						kind:            STARTS,
-// // 						style:           style.FgCyan,
-// // 						sourceCommitSha: "selected",
-// // 					},
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           2,
-// // 						kind:            STARTS,
-// // 						style:           style.FgCyan,
-// // 						sourceCommitSha: "selected",
-// // 					},
-// // 					{
-// // 						fromPos:         1,
-// // 						toPos:           1,
-// // 						kind:            CONTINUES,
-// // 						style:           style.FgDefault,
-// // 						sourceCommitSha: "c",
-// // 					},
-// // 				},
-// // 				isMerge: true,
-// // 			},
-// // 			expectedCells: []*Cell{
-// // 				{
-// // 					up:         false,
-// // 					down:       true,
-// // 					right:      true,
-// // 					cellType:   MERGE,
-// // 					style:      style.FgCyan,
-// // 					rightStyle: &style.FgCyan,
-// // 				},
-// // 				{
-// // 					up:         false,
-// // 					down:       false,
-// // 					left:       true,
-// // 					right:      true,
-// // 					cellType:   CONNECTION,
-// // 					style:      style.FgCyan,
-// // 					rightStyle: &style.FgCyan,
-// // 				},
-// // 				{
-// // 					down:     true,
-// // 					left:     true,
-// // 					cellType: CONNECTION,
-// // 					style:    style.FgCyan,
-// // 				},
-// // 			},
-// // 		},
-// // 		{
-// // 			pipeSet: PipeSet{
-// // 				pipes: []Pipe{
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           0,
-// // 						kind:            TERMINATES,
-// // 						style:           style.FgGreen,
-// // 						sourceCommitSha: "a",
-// // 					},
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           0,
-// // 						kind:            STARTS,
-// // 						style:           style.FgYellow,
-// // 						sourceCommitSha: "b",
-// // 					},
-// // 					{
-// // 						fromPos:         0,
-// // 						toPos:           2,
-// // 						kind:            STARTS,
-// // 						style:           style.FgYellow,
-// // 						sourceCommitSha: "b",
-// // 					},
-// // 					{
-// // 						fromPos:         1,
-// // 						toPos:           1,
-// // 						kind:            CONTINUES,
-// // 						style:           style.FgDefault,
-// // 						sourceCommitSha: "a",
-// // 					},
-// // 				},
-// // 				isMerge: true,
-// // 			},
-// // 			expectedCells: []*Cell{
-// // 				{
-// // 					up:         true,
-// // 					down:       true,
-// // 					right:      true,
-// // 					cellType:   MERGE,
-// // 					style:      style.FgYellow,
-// // 					rightStyle: &style.FgYellow,
-// // 				},
-// // 				{
-// // 					up:         true,
-// // 					down:       true,
-// // 					left:       true,
-// // 					right:      true,
-// // 					cellType:   CONNECTION,
-// // 					style:      style.FgGreen,
-// // 					rightStyle: &style.FgYellow,
-// // 				},
-// // 				{
-// // 					down:     true,
-// // 					left:     true,
-// // 					cellType: CONNECTION,
-// // 					style:    style.FgYellow,
-// // 				},
-// // 			},
-// // 		},
-// // 	}
-
-// // 	for _, test := range tests {
-// // 		cells := getCellsFromPipeSet(test.pipeSet, "selected")
-// // 		if len(cells) != len(test.expectedCells) {
-// // 			t.Errorf("expected cells to be %s, got %s", spew.Sdump(test.expectedCells), spew.Sdump(cells))
-// // 			continue
-// // 		}
-// // 		t.Log(spew.Sdump(cells))
-// // 		for i, cell := range cells {
-// // 			assert.EqualValues(t, test.expectedCells[i], cell)
-// // 		}
-// // 	}
-// // }
-
-// // func TestCellRender(t *testing.T) {
-// // 	tests := []struct {
-// // 		cell           *Cell
-// // 		expectedString string
-// // 	}{
-// // 		{
-// // 			cell: &Cell{
-// // 				up:       true,
-// // 				down:     true,
-// // 				cellType: CONNECTION,
-// // 				style:    style.FgDefault,
-// // 			},
-// // 			expectedString: "\x1b[39m│\x1b[0m\x1b[39m \x1b[0m",
-// // 		},
-// // 		{
-// // 			cell: &Cell{
-// // 				up:       true,
-// // 				down:     true,
-// // 				cellType: COMMIT,
-// // 				style:    style.FgDefault,
-// // 			},
-// // 			expectedString: "\x1b[39m⎔\x1b[0m\x1b[39m \x1b[0m",
-// // 		},
-// // 	}
-
-// // 	for _, test := range tests {
-// // 		assert.EqualValues(t, test.expectedString, test.cell.render())
-// // 	}
-// // }
-
-func TestGetNextPipes(t *testing.T) {
+func TestGetCellsFromPipeSet(t *testing.T) {
 	tests := []struct {
-		prevPipes []Pipe
-		commit    *models.Commit
-		expected  []Pipe
+		name          string
+		pipes         []Pipe
+		commit        *models.Commit
+		prevCommit    *models.Commit
+		expectedCells []*Cell
 	}{
 		{
-			prevPipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: STARTS, style: style.FgDefault},
+			name: "single cell",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgCyan},
+				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgGreen},
 			},
-			commit: &models.Commit{
-				Sha:     "b",
-				Parents: []string{"c"},
-			},
-			expected: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgDefault},
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgDefault},
-			},
-		},
-		{
-			prevPipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgDefault},
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgDefault},
-				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "d", kind: STARTS, style: style.FgDefault},
-			},
-			commit: &models.Commit{
-				Sha:     "d",
-				Parents: []string{"e"},
-			},
-			expected: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: CONTINUES, style: style.FgDefault},
-				{fromPos: 1, toPos: 1, fromSha: "d", toSha: "e", kind: STARTS, style: style.FgDefault},
-				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES, style: style.FgDefault},
+			commit:     &models.Commit{Sha: "b"},
+			prevCommit: &models.Commit{Sha: "a"},
+			expectedCells: []*Cell{
+				{up: false, down: true, left: false, right: false, cellType: COMMIT, style: style.FgGreen},
 			},
 		},
 		{
-			prevPipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "START", toSha: "A", kind: STARTS, style: style.FgDefault},
+			name: "single cell, selected",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "selected", kind: TERMINATES, style: style.FgCyan},
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "c", kind: STARTS, style: style.FgGreen},
 			},
-			commit: &models.Commit{
-				Sha:     "A",
-				Parents: []string{"B"},
+			commit:     &models.Commit{Sha: "selected"},
+			prevCommit: &models.Commit{Sha: "a"},
+			expectedCells: []*Cell{
+				{up: false, down: true, left: false, right: false, cellType: COMMIT, style: highlightStyle},
 			},
-			expected: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "A", toSha: "B", kind: CONTINUES, style: style.FgDefault},
-				{fromPos: 1, toPos: 1, fromSha: "d", toSha: "e", kind: STARTS, style: style.FgDefault},
-				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES, style: style.FgDefault},
+		},
+		{
+			name: "terminating hook and starting hook, selected",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "selected", kind: TERMINATES, style: style.FgCyan},
+				{fromPos: 1, toPos: 0, fromSha: "c", toSha: "selected", kind: TERMINATES, style: style.FgYellow},
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "d", kind: STARTS, style: style.FgGreen},
+				{fromPos: 0, toPos: 1, fromSha: "selected", toSha: "e", kind: STARTS, style: style.FgGreen},
+			},
+			commit:     &models.Commit{Sha: "selected"},
+			prevCommit: &models.Commit{Sha: "a"},
+			expectedCells: []*Cell{
+				{up: false, down: true, left: false, right: true, cellType: COMMIT, style: highlightStyle, rightStyle: &highlightStyle},
+				{up: false, down: true, left: true, right: false, cellType: CONNECTION, style: highlightStyle, rightStyle: nil},
+			},
+		},
+		{
+			name: "terminating hook and starting hook, prioritise the starting one",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgRed},
+				{fromPos: 1, toPos: 0, fromSha: "c", toSha: "b", kind: TERMINATES, style: style.FgBlue},
+				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "d", kind: STARTS, style: style.FgGreen},
+				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "e", kind: STARTS, style: style.FgGreen},
+			},
+			commit:     &models.Commit{Sha: "b"},
+			prevCommit: &models.Commit{Sha: "a"},
+			expectedCells: []*Cell{
+				{up: false, down: true, left: false, right: true, cellType: COMMIT, style: style.FgGreen, rightStyle: &style.FgGreen},
+				{up: true, down: true, left: true, right: false, cellType: CONNECTION, style: style.FgBlue, rightStyle: nil},
 			},
 		},
 	}
 
 	for _, test := range tests {
-		getStyle := func(c *models.Commit) style.TextStyle { return style.FgDefault }
-		pipes := getNextPipes(test.prevPipes, test.commit, getStyle)
-		assert.EqualValues(t, test.expected, pipes)
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			cells := getCellsFromPipeSet(test.pipes, test.commit, "selected", test.prevCommit)
+			t.Log("expected cells:")
+			t.Log(renderCells(test.expectedCells))
+			t.Log("actual cells:")
+			t.Log(renderCells(cells))
+			if len(cells) != len(test.expectedCells) {
+				t.Errorf("expected cells to be %s, got %s", spew.Sdump(test.expectedCells), spew.Sdump(cells))
+				return
+			}
+			for i, cell := range cells {
+				assert.EqualValues(t, test.expectedCells[i], cell)
+			}
+		})
 	}
 }
+
+// func TestCellRender(t *testing.T) {
+// 	tests := []struct {
+// 		cell           *Cell
+// 		expectedString string
+// 	}{
+// 		{
+// 			cell: &Cell{
+// 				up:       true,
+// 				down:     true,
+// 				cellType: CONNECTION,
+// 				style:    style.FgDefault,
+// 			},
+// 			expectedString: "\x1b[39m│\x1b[0m\x1b[39m \x1b[0m",
+// 		},
+// 		{
+// 			cell: &Cell{
+// 				up:       true,
+// 				down:     true,
+// 				cellType: COMMIT,
+// 				style:    style.FgDefault,
+// 			},
+// 			expectedString: "\x1b[39m⎔\x1b[0m\x1b[39m \x1b[0m",
+// 		},
+// 	}
+
+// 	for _, test := range tests {
+// 		assert.EqualValues(t, test.expectedString, test.cell.render())
+// 	}
+// }
+
+// func TestGetNextPipes(t *testing.T) {
+// 	tests := []struct {
+// 		prevPipes []Pipe
+// 		commit    *models.Commit
+// 		expected  []Pipe
+// 	}{
+// 		{
+// 			prevPipes: []Pipe{
+// 				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: STARTS, style: style.FgDefault},
+// 			},
+// 			commit: &models.Commit{
+// 				Sha:     "b",
+// 				Parents: []string{"c"},
+// 			},
+// 			expected: []Pipe{
+// 				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgDefault},
+// 				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgDefault},
+// 			},
+// 		},
+// 		{
+// 			prevPipes: []Pipe{
+// 				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgDefault},
+// 				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgDefault},
+// 				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "d", kind: STARTS, style: style.FgDefault},
+// 			},
+// 			commit: &models.Commit{
+// 				Sha:     "d",
+// 				Parents: []string{"e"},
+// 			},
+// 			expected: []Pipe{
+// 				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: CONTINUES, style: style.FgDefault},
+// 				{fromPos: 1, toPos: 1, fromSha: "d", toSha: "e", kind: STARTS, style: style.FgDefault},
+// 				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES, style: style.FgDefault},
+// 			},
+// 		},
+// 		{
+// 			prevPipes: []Pipe{
+// 				{fromPos: 0, toPos: 0, fromSha: "START", toSha: "A", kind: STARTS, style: style.FgDefault},
+// 			},
+// 			commit: &models.Commit{
+// 				Sha:     "A",
+// 				Parents: []string{"B"},
+// 			},
+// 			expected: []Pipe{
+// 				{fromPos: 0, toPos: 0, fromSha: "A", toSha: "B", kind: CONTINUES, style: style.FgDefault},
+// 				{fromPos: 1, toPos: 1, fromSha: "d", toSha: "e", kind: STARTS, style: style.FgDefault},
+// 				{fromPos: 1, toPos: 1, fromSha: "b", toSha: "d", kind: TERMINATES, style: style.FgDefault},
+// 			},
+// 		},
+// 	}
+
+// 	for _, test := range tests {
+// 		getStyle := func(c *models.Commit) style.TextStyle { return style.FgDefault }
+// 		pipes := getNextPipes(test.prevPipes, test.commit, getStyle)
+// 		assert.EqualValues(t, test.expected, pipes)
+// 	}
+// }
