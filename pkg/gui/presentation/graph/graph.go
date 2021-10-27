@@ -91,8 +91,8 @@ func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha st
 		if i > 0 {
 			prevCommit = commits[i-1]
 		}
-		cells := getCellsFromPipeSet(pipeSet, commits[i], selectedCommitSha, prevCommit)
-		lines = append(lines, renderCells(cells))
+		line := renderPipeSet(pipeSet, commits[i], selectedCommitSha, prevCommit)
+		lines = append(lines, line)
 	}
 	return lines
 }
@@ -255,7 +255,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 	return newPipes
 }
 
-func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha string, prevCommit *models.Commit) []*Cell {
+func renderPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha string, prevCommit *models.Commit) string {
 	isMerge := commit.IsMerge()
 	pos := 0
 	for _, pipe := range pipes {
@@ -355,7 +355,11 @@ func getCellsFromPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha 
 
 	cells[pos].setType(cType)
 
-	return cells
+	var result string
+	for _, cell := range cells {
+		result += cell.render()
+	}
+	return result
 }
 
 func equalHashes(a, b string) bool {
