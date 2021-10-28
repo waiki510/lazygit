@@ -49,22 +49,30 @@ func AuthorStyle(authorName string) style.TextStyle {
 		return value
 	}
 
-	hash := md5.Sum([]byte(authorName))
-	c := colorful.Hsl(randFloat(hash[0:4])*360.0, 0.6+0.4*randFloat(hash[4:8]), 0.4+randFloat(hash[8:12])*0.2)
-
-	value := style.New().SetFg(style.NewRGBColor(color.RGB(uint8(c.R*255), uint8(c.G*255), uint8(c.B*255))))
+	value := trueColorStyle(authorName)
 
 	authorStyleCache[authorName] = value
 
 	return value
 }
 
+func trueColorStyle(str string) style.TextStyle {
+	hash := md5.Sum([]byte(str))
+	c := colorful.Hsl(randFloat(hash[0:4])*360.0, 0.6+0.4*randFloat(hash[4:8]), 0.4+randFloat(hash[8:12])*0.2)
+
+	return style.New().SetFg(style.NewRGBColor(color.RGB(uint8(c.R*255), uint8(c.G*255), uint8(c.B*255))))
+}
+
 func randFloat(hash []byte) float64 {
+	return float64(randInt(hash, 100)) / 100
+}
+
+func randInt(hash []byte, max int) int {
 	sum := 0
 	for _, b := range hash {
-		sum = (sum + int(b)) % 100
+		sum = (sum + int(b)) % max
 	}
-	return float64(sum) / 100
+	return sum
 }
 
 func getInitials(authorName string) string {
