@@ -34,16 +34,6 @@ func ResetOldCommitLines(
 ) [][]string {
 	mutex.Lock()
 	defer mutex.Unlock()
-	lines := [][]string{}
-
-	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
-	if fullDescription {
-		displayFunc = getFullDescriptionDisplayStringsForCommit
-	} else {
-		displayFunc = getDisplayStringsForCommit
-	}
-
-	// all I need to do is reconstruct the graph lines for the old commit and the newly selected commit. It would be good if I had a history of the range of the last selected one.
 
 	if OldStart == -1 || OldEnd == -1 {
 		return [][]string{}
@@ -51,13 +41,14 @@ func ResetOldCommitLines(
 
 	graphLines := graph.RenderAux(lastPipeSets[OldStart:OldEnd+1], commits[OldStart:OldEnd+1], selectedCommit.Sha)
 
-	for i := OldStart; i <= OldEnd && i < len(commits); i++ {
-		commit := commits[i]
-		diffed := commit.Sha == diffName
-		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i-OldStart]))
-	}
-
-	return lines
+	return getCommitListDisplayStrings(
+		commits[OldStart:OldEnd+1],
+		graphLines,
+		fullDescription,
+		cherryPickedCommitShaMap,
+		diffName,
+		parseEmoji,
+	)
 }
 
 func SetNewSelection(
@@ -71,14 +62,6 @@ func SetNewSelection(
 ) [][]string {
 	mutex.Lock()
 	defer mutex.Unlock()
-	lines := [][]string{}
-
-	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
-	if fullDescription {
-		displayFunc = getFullDescriptionDisplayStringsForCommit
-	} else {
-		displayFunc = getDisplayStringsForCommit
-	}
 
 	end := index
 	for i := index; i < len(commits); i++ {
@@ -88,44 +71,45 @@ func SetNewSelection(
 		}
 	}
 
-	graphLines := graph.RenderAux(lastPipeSets[index:end+1], commits[index:end+1], selectedCommit.Sha)
-
-	for i := index; i <= end; i++ {
-		commit := commits[i]
-		diffed := commit.Sha == diffName
-		lines = append(lines, displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i-index]))
-	}
-
 	OldStart = index
 	OldEnd = end
+
+	graphLines := graph.RenderAux(lastPipeSets[index:end+1], commits[index:end+1], selectedCommit.Sha)
+	return getCommitListDisplayStrings(
+		commits[index:end+1],
+		graphLines,
+		fullDescription,
+		cherryPickedCommitShaMap,
+		diffName,
+		parseEmoji,
+	)
+}
+
+func getCommitListDisplayStrings(
+	commits []*models.Commit,
+	graphLines []string,
+	fullDescription bool,
+	cherryPickedCommitShaMap map[string]bool,
+	diffName string,
+	parseEmoji bool,
+) [][]string {
+	lines := make([][]string, 0, len(graphLines))
+	for i, commit := range commits {
+		lines = append(lines, displayCommit(commit, cherryPickedCommitShaMap, diffName, parseEmoji, graphLines[i], fullDescription))
+	}
 	return lines
 }
 
-func newLogger() *logrus.Entry {
-	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
-	}
-	logger := logrus.New()
-	logger.SetLevel(logrus.WarnLevel)
-	logger.SetOutput(file)
-	return logger.WithFields(logrus.Fields{})
-}
-
-var Log = newLogger()
-
-func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool, cherryPickedCommitShaMap map[string]bool, diffName string, parseEmoji bool, selectedCommit *models.Commit) [][]string {
+func GetAllCommitListDisplayStrings(
+	commits []*models.Commit,
+	fullDescription bool,
+	cherryPickedCommitShaMap map[string]bool,
+	diffName string,
+	parseEmoji bool,
+	selectedCommit *models.Commit,
+) [][]string {
 	mutex.Lock()
 	defer mutex.Unlock()
-	lines := make([][]string, len(commits))
-
-	var displayFunc func(*models.Commit, map[string]bool, bool, bool, string) []string
-	if fullDescription {
-		displayFunc = getFullDescriptionDisplayStringsForCommit
-	} else {
-		displayFunc = getDisplayStringsForCommit
-	}
 
 	getStyle := func(commit *models.Commit) style.TextStyle {
 		return authors.AuthorStyle(commit.Author)
@@ -135,101 +119,94 @@ func GetCommitListDisplayStrings(commits []*models.Commit, fullDescription bool,
 	OldStart = start
 	OldEnd = end
 
-	for i, commit := range commits {
-		diffed := commit.Sha == diffName
-		lines[i] = displayFunc(commit, cherryPickedCommitShaMap, diffed, parseEmoji, graphLines[i])
-	}
-
-	return lines
+	return getCommitListDisplayStrings(
+		commits,
+		graphLines,
+		fullDescription,
+		cherryPickedCommitShaMap,
+		diffName,
+		parseEmoji,
+	)
 }
 
-func getFullDescriptionDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[string]bool, diffed, parseEmoji bool, graphLine string) []string {
-	shaColor := theme.DefaultTextColor
-	switch c.Status {
-	case "unpushed":
-		shaColor = style.FgRed
-	case "pushed":
-		shaColor = style.FgYellow
-	case "merged":
-		shaColor = style.FgGreen
-	case "rebasing":
-		shaColor = style.FgBlue
-	case "reflog":
-		shaColor = style.FgBlue
-	}
-
-	if diffed {
-		shaColor = theme.DiffTerminalColor
-	} else if cherryPickedCommitShaMap[c.Sha] {
-		// for some reason, setting the background to blue pads out the other commits
-		// horizontally. For the sake of accessibility I'm considering this a feature,
-		// not a bug
-		shaColor = theme.CherryPickedCommitTextStyle
-	}
-
-	tagString := ""
-	secondColumnString := ""
-	if c.Action != "" {
-		secondColumnString = actionColorMap(c.Action).Sprint(c.Action)
-	} else if c.ExtraInfo != "" {
-		tagString = style.FgMagenta.SetBold().Sprint(c.ExtraInfo) + " "
-	}
-
-	name := c.Name
-	if parseEmoji {
-		name = emoji.Sprint(name)
-	}
-
-	return []string{
-		shaColor.Sprint(c.ShortSha()),
-		secondColumnString,
-		authors.LongAuthor(c.Author),
-		graphLine + tagString + theme.DefaultTextColor.Sprint(name),
-	}
-}
-
-func getDisplayStringsForCommit(c *models.Commit, cherryPickedCommitShaMap map[string]bool, diffed, parseEmoji bool, graphLine string) []string {
-	shaColor := theme.DefaultTextColor
-	switch c.Status {
-	case "unpushed":
-		shaColor = style.FgRed
-	case "pushed":
-		shaColor = style.FgYellow
-	case "merged":
-		shaColor = style.FgGreen
-	case "rebasing":
-		shaColor = style.FgBlue
-	case "reflog":
-		shaColor = style.FgBlue
-	}
-
-	if diffed {
-		shaColor = theme.DiffTerminalColor
-	} else if cherryPickedCommitShaMap[c.Sha] {
-		// for some reason, setting the background to blue pads out the other commits
-		// horizontally. For the sake of accessibility I'm considering this a feature,
-		// not a bug
-		shaColor = theme.CherryPickedCommitTextStyle
-	}
+func displayCommit(
+	commit *models.Commit,
+	cherryPickedCommitShaMap map[string]bool,
+	diffName string,
+	parseEmoji bool,
+	graphLine string,
+	fullDescription bool,
+) []string {
+	shaColor := getShaColor(commit, diffName, cherryPickedCommitShaMap)
 
 	actionString := ""
-	tagString := ""
-	if c.Action != "" {
-		actionString = actionColorMap(c.Action).Sprint(utils.WithPadding(c.Action, 7)) + " "
-	} else if len(c.Tags) > 0 {
-		tagString = theme.DiffTerminalColor.SetBold().Sprint(strings.Join(c.Tags, " ")) + " "
+	if commit.Action != "" {
+		actionString = actionColorMap(commit.Action).Sprint(commit.Action) + " "
 	}
 
-	name := c.Name
+	tagString := ""
+	if fullDescription {
+		if len(commit.Tags) > 0 {
+			tagString = theme.DiffTerminalColor.SetBold().Sprint(strings.Join(commit.Tags, " ")) + " "
+		}
+	} else {
+		if commit.ExtraInfo != "" {
+			tagString = style.FgMagenta.SetBold().Sprint(commit.ExtraInfo) + " "
+		}
+	}
+
+	name := commit.Name
 	if parseEmoji {
 		name = emoji.Sprint(name)
 	}
 
-	return []string{
-		shaColor.Sprint(c.ShortSha()),
-		authors.ShortAuthor(c.Author),
-		graphLine + actionString + tagString + theme.DefaultTextColor.Sprint(name),
+	authorFunc := authors.ShortAuthor
+	if fullDescription {
+		authorFunc = authors.LongAuthor
 	}
+
+	cols := make([]string, 0, 5)
+	cols = append(cols, shaColor.Sprint(commit.ShortSha()))
+	if fullDescription {
+		cols = append(cols, style.FgBlue.Sprint(utils.UnixToDate(commit.UnixTimestamp)))
+	}
+	cols = append(
+		cols,
+		actionString,
+		authorFunc(commit.Author),
+		graphLine+tagString+theme.DefaultTextColor.Sprint(name),
+	)
+
+	return cols
+
+}
+
+func getShaColor(commit *models.Commit, diffName string, cherryPickedCommitShaMap map[string]bool) style.TextStyle {
+	diffed := commit.Sha == diffName
+	shaColor := theme.DefaultTextColor
+	switch commit.Status {
+	case "unpushed":
+		shaColor = style.FgRed
+	case "pushed":
+		shaColor = style.FgYellow
+	case "merged":
+		shaColor = style.FgGreen
+	case "rebasing":
+		shaColor = style.FgBlue
+	case "reflog":
+		shaColor = style.FgBlue
+	}
+
+	if diffed {
+		shaColor = theme.DiffTerminalColor
+	} else if cherryPickedCommitShaMap[commit.Sha] {
+		// for some reason, setting the background to blue pads out the other commits
+		// horizontally. For the sake of accessibility I'm considering this a feature,
+		// not a bug
+		shaColor = theme.CherryPickedCommitTextStyle
+	}
+
+	return shaColor
 }
 
 func actionColorMap(str string) style.TextStyle {
@@ -246,3 +223,17 @@ func actionColorMap(str string) style.TextStyle {
 		return style.FgYellow
 	}
 }
+
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()

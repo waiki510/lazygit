@@ -158,7 +158,7 @@ func (gui *Gui) branchCommitsListContext() *ListContext {
 		Gui:                 gui,
 		GetDisplayStrings: func() [][]string {
 			selectedCommit := gui.getSelectedLocalCommit()
-			return presentation.GetCommitListDisplayStrings(
+			return presentation.GetAllCommitListDisplayStrings(
 				gui.State.Commits,
 				gui.State.ScreenMode != SCREEN_NORMAL,
 				gui.cherryPickedCommitShaMap(),
@@ -218,7 +218,7 @@ func (gui *Gui) subCommitsListContext() *ListContext {
 		Gui:            gui,
 		GetDisplayStrings: func() [][]string {
 			selectedCommit := gui.getSelectedSubCommit()
-			return presentation.GetCommitListDisplayStrings(
+			return presentation.GetAllCommitListDisplayStrings(
 				gui.State.SubCommits,
 				gui.State.ScreenMode != SCREEN_NORMAL,
 				gui.cherryPickedCommitShaMap(),
