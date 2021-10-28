@@ -129,14 +129,16 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 		traversedSpots[pos] = true
 	}
 
-	newPipes = append(newPipes, Pipe{
-		fromPos: pos,
-		toPos:   pos,
-		fromSha: commit.Sha,
-		toSha:   commit.Parents[0],
-		kind:    STARTS,
-		style:   getStyle(commit),
-	})
+	if len(commit.Parents) > 0 {
+		newPipes = append(newPipes, Pipe{
+			fromPos: pos,
+			toPos:   pos,
+			fromSha: commit.Sha,
+			toSha:   commit.Parents[0],
+			kind:    STARTS,
+			style:   getStyle(commit),
+		})
+	}
 
 	otherMap := make(map[int]bool)
 	for _, pipe := range currentPipes {
@@ -255,7 +257,12 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 	return newPipes
 }
 
-func renderPipeSet(pipes []Pipe, commit *models.Commit, selectedCommitSha string, prevCommit *models.Commit) string {
+func renderPipeSet(
+	pipes []Pipe,
+	commit *models.Commit,
+	selectedCommitSha string,
+	prevCommit *models.Commit,
+) string {
 	isMerge := commit.IsMerge()
 	pos := 0
 	for _, pipe := range pipes {
