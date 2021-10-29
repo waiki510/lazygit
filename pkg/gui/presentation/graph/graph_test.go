@@ -69,6 +69,26 @@ func TestRenderCommitGraph(t *testing.T) {
 			6 ⎔`,
 		},
 		{
+			name: "with a new commit",
+			commits: []*models.Commit{
+				{Sha: "1", Parents: []string{"2"}},
+				{Sha: "2", Parents: []string{"3", "4"}},
+				{Sha: "4", Parents: []string{"3", "5"}},
+				{Sha: "Z", Parents: []string{"Z"}},
+				{Sha: "3", Parents: []string{"5"}},
+				{Sha: "5", Parents: []string{"6"}},
+				{Sha: "6", Parents: []string{"7"}},
+			},
+			expectedOutput: `
+			1 ⎔
+			2 ⏣─┐
+			4 │ ⏣─┐
+			Z │ │ │ ⎔
+			3 ⎔─┘ │ │
+			5 ⎔───┘ │
+			6 ⎔ ┌───┘`,
+		},
+		{
 			name: "with a path that has room to move to the left and continues",
 			commits: []*models.Commit{
 				{Sha: "1", Parents: []string{"2"}},
@@ -222,6 +242,7 @@ func TestRenderPipeSet(t *testing.T) {
 	// blue := style.FgBlue
 	yellow := style.FgYellow
 	magenta := style.FgMagenta
+	nothing := style.Nothing
 
 	tests := []struct {
 		name           string
@@ -306,7 +327,7 @@ func TestRenderPipeSet(t *testing.T) {
 			prevCommit:  &models.Commit{Sha: "a1"},
 			expectedStr: "⏣───┐ ┘",
 			expectedStyles: []style.TextStyle{
-				highlightStyle, highlightStyle, highlightStyle, highlightStyle, highlightStyle, style.Nothing, green,
+				highlightStyle, highlightStyle, highlightStyle, highlightStyle, highlightStyle, nothing, green,
 			},
 		},
 		{
@@ -366,6 +387,57 @@ func TestRenderPipeSet(t *testing.T) {
 			expectedStr: "⏣─┬─│─┘",
 			expectedStyles: []style.TextStyle{
 				yellow, yellow, yellow, magenta, green, magenta, magenta,
+			},
+		},
+		{
+			name: "commit whose previous commit is selected",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "a2", toSha: "a3", kind: STARTS, style: yellow},
+			},
+			prevCommit:  &models.Commit{Sha: "selected"},
+			expectedStr: "⎔",
+			expectedStyles: []style.TextStyle{
+				yellow,
+			},
+		},
+		{
+			name: "commit whose previous commit is selected and is a merge commit",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 1, toPos: 1, fromSha: "selected", toSha: "b3", kind: CONTINUES, style: red},
+			},
+			prevCommit:  &models.Commit{Sha: "selected"},
+			expectedStr: "⎔ │",
+			expectedStyles: []style.TextStyle{
+				highlightStyle, nothing, highlightStyle,
+			},
+		},
+		{
+			name: "commit whose previous commit is selected and is a merge commit, with continuing pipe inbetween",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 1, toPos: 1, fromSha: "z1", toSha: "z3", kind: CONTINUES, style: green},
+				{fromPos: 2, toPos: 2, fromSha: "selected", toSha: "b3", kind: CONTINUES, style: red},
+			},
+			prevCommit:  &models.Commit{Sha: "selected"},
+			expectedStr: "⎔ │ │",
+			expectedStyles: []style.TextStyle{
+				highlightStyle, nothing, green, nothing, highlightStyle,
+			},
+		},
+		{
+			name: "when previous commit is selected, not a merge commit, and spawns a continuing pipe",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a1", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "a2", toSha: "a3", kind: STARTS, style: green},
+				{fromPos: 0, toPos: 1, fromSha: "a2", toSha: "b3", kind: STARTS, style: green},
+				{fromPos: 1, toPos: 0, fromSha: "selected", toSha: "a2", kind: TERMINATES, style: yellow},
+			},
+			prevCommit:  &models.Commit{Sha: "selected"},
+			expectedStr: "⏣─┘",
+			expectedStyles: []style.TextStyle{
+				highlightStyle, highlightStyle, highlightStyle,
 			},
 		},
 	}

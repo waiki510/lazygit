@@ -101,6 +101,8 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 	currentPipes := []Pipe{}
 	maxPos := 0
 	for _, pipe := range prevPipes {
+		// a pipe that terminated in the previous line has no bearing on the current line
+		// so we'll filter those out
 		if pipe.kind != TERMINATES {
 			currentPipes = append(currentPipes, pipe)
 		}
@@ -108,26 +110,21 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 	}
 
 	newPipes := []Pipe{}
-	// TODO: need to decide on where to put the commit based on the leftmost pipe
-	// that goes to the commit
-	pos := -1
+	// start by assuming that we've got a brand new commit not related to any preceding commit.
+	// (this only happens when we're doing `git log --all`). These will be tacked onto the far end.
+	pos := maxPos + 1
 	for _, pipe := range currentPipes {
 		if equalHashes(pipe.toSha, commit.Sha) {
-			if pos == -1 {
-				pos = pipe.toPos
-			} else {
-				pos = utils.Min(pipe.toPos, pos)
-			}
+			// turns out this commit does have a descendant so we'll place it right under the first instance
+			pos = pipe.toPos
+			break
 		}
 	}
 
+	// a taken spot is one where a current pipe is ending on
 	takenSpots := make(map[int]bool)
+	// a traversed spot is one where a current pipe is starting on, ending on, or passing through
 	traversedSpots := make(map[int]bool)
-	if pos == -1 {
-		pos = maxPos + 1
-		takenSpots[pos] = true
-		traversedSpots[pos] = true
-	}
 
 	if len(commit.Parents) > 0 {
 		newPipes = append(newPipes, Pipe{
@@ -140,27 +137,29 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 		})
 	}
 
-	otherMap := make(map[int]bool)
+	traversedSpotsForContinuingPipes := make(map[int]bool)
 	for _, pipe := range currentPipes {
 		if !equalHashes(pipe.toSha, commit.Sha) {
-			otherMap[pipe.toPos] = true
+			traversedSpotsForContinuingPipes[pipe.toPos] = true
 		}
 	}
 
-	getNextAvailablePosForNewPipe := func() int {
+	getNextAvailablePosForContinuingPipe := func() int {
 		i := 0
 		for {
-			if !takenSpots[i] && !otherMap[i] {
+			if !traversedSpots[i] {
 				return i
 			}
 			i++
 		}
 	}
 
-	getNextAvailablePos := func() int {
+	getNextAvailablePosForNewPipe := func() int {
 		i := 0
 		for {
-			if !traversedSpots[i] {
+			// a newly created pipe is not allowed to end on a spot that's already taken,
+			// nor on a spot that's been traversed by a continuing pipe.
+			if !takenSpots[i] && !traversedSpotsForContinuingPipes[i] {
 				return i
 			}
 			i++
@@ -192,7 +191,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 			traverse(pipe.toPos, pos)
 		} else if pipe.toPos < pos {
 			// continuing here
-			availablePos := getNextAvailablePos()
+			availablePos := getNextAvailablePosForContinuingPipe()
 			newPipes = append(newPipes, Pipe{
 				fromPos: pipe.toPos,
 				toPos:   availablePos,
@@ -225,7 +224,6 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 	for _, pipe := range currentPipes {
 		if !equalHashes(pipe.toSha, commit.Sha) && pipe.toPos > pos {
 			// continuing on, potentially moving left to fill in a blank spot
-			// actually need to work backwards: can't just fill any gap: or can I?
 			last := pipe.toPos
 			for i := pipe.toPos; i > pos; i-- {
 				if takenSpots[i] || traversedSpots[i] {
