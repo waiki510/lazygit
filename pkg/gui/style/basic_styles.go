@@ -28,6 +28,9 @@ var (
 	BgMagenta = FromBasicBg(color.BgMagenta)
 	BgCyan    = FromBasicBg(color.BgCyan)
 
+	// will not print any colour escape codes, including the reset escape code
+	Nothing = New()
+
 	AttrUnderline = New().SetUnderline()
 	AttrBold      = New().SetBold()
 

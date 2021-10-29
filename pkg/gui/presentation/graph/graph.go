@@ -91,7 +91,7 @@ func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha st
 		if i > 0 {
 			prevCommit = commits[i-1]
 		}
-		line := renderPipeSet(pipeSet, commits[i], selectedCommitSha, prevCommit)
+		line := renderPipeSet(pipeSet, selectedCommitSha, prevCommit)
 		lines = append(lines, line)
 	}
 	return lines
@@ -259,19 +259,20 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 
 func renderPipeSet(
 	pipes []Pipe,
-	commit *models.Commit,
 	selectedCommitSha string,
 	prevCommit *models.Commit,
 ) string {
-	isMerge := commit.IsMerge()
 	pos := 0
+	startCount := 0
 	for _, pipe := range pipes {
 		if pipe.kind == STARTS {
+			startCount++
 			pos = pipe.fromPos
 		} else if pipe.kind == TERMINATES {
 			pos = pipe.toPos
 		}
 	}
+	isMerge := startCount > 1
 
 	maxPos := 0
 	for _, pipe := range pipes {

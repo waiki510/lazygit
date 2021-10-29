@@ -216,6 +216,13 @@ func TestRenderCommitGraph(t *testing.T) {
 }
 
 func TestRenderPipeSet(t *testing.T) {
+	cyan := style.FgCyan
+	red := style.FgRed
+	green := style.FgGreen
+	// blue := style.FgBlue
+	yellow := style.FgYellow
+	magenta := style.FgMagenta
+
 	tests := []struct {
 		name           string
 		pipes          []Pipe
@@ -227,21 +234,19 @@ func TestRenderPipeSet(t *testing.T) {
 		{
 			name: "single cell",
 			pipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgCyan},
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: style.FgGreen},
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: cyan},
+				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "c", kind: STARTS, style: green},
 			},
-			commit:         &models.Commit{Sha: "b"},
 			prevCommit:     &models.Commit{Sha: "a"},
 			expectedStr:    "⎔",
-			expectedStyles: []style.TextStyle{style.FgGreen},
+			expectedStyles: []style.TextStyle{green},
 		},
 		{
 			name: "single cell, selected",
 			pipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "selected", kind: TERMINATES, style: style.FgCyan},
-				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "c", kind: STARTS, style: style.FgGreen},
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "selected", kind: TERMINATES, style: cyan},
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "c", kind: STARTS, style: green},
 			},
-			commit:         &models.Commit{Sha: "selected"},
 			prevCommit:     &models.Commit{Sha: "a"},
 			expectedStr:    "⎔",
 			expectedStyles: []style.TextStyle{highlightStyle},
@@ -249,14 +254,13 @@ func TestRenderPipeSet(t *testing.T) {
 		{
 			name: "terminating hook and starting hook, selected",
 			pipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "selected", kind: TERMINATES, style: style.FgCyan},
-				{fromPos: 1, toPos: 0, fromSha: "c", toSha: "selected", kind: TERMINATES, style: style.FgYellow},
-				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "d", kind: STARTS, style: style.FgGreen},
-				{fromPos: 0, toPos: 1, fromSha: "selected", toSha: "e", kind: STARTS, style: style.FgGreen},
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "selected", kind: TERMINATES, style: cyan},
+				{fromPos: 1, toPos: 0, fromSha: "c", toSha: "selected", kind: TERMINATES, style: yellow},
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "d", kind: STARTS, style: green},
+				{fromPos: 0, toPos: 1, fromSha: "selected", toSha: "e", kind: STARTS, style: green},
 			},
-			commit:      &models.Commit{Sha: "selected"},
 			prevCommit:  &models.Commit{Sha: "a"},
-			expectedStr: "⎔─┐",
+			expectedStr: "⏣─┐",
 			expectedStyles: []style.TextStyle{
 				highlightStyle, highlightStyle, highlightStyle,
 			},
@@ -264,16 +268,104 @@ func TestRenderPipeSet(t *testing.T) {
 		{
 			name: "terminating hook and starting hook, prioritise the starting one",
 			pipes: []Pipe{
-				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: style.FgRed},
-				{fromPos: 1, toPos: 0, fromSha: "c", toSha: "b", kind: TERMINATES, style: style.FgMagenta},
-				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "d", kind: STARTS, style: style.FgGreen},
-				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "e", kind: STARTS, style: style.FgGreen},
+				{fromPos: 0, toPos: 0, fromSha: "a", toSha: "b", kind: TERMINATES, style: red},
+				{fromPos: 1, toPos: 0, fromSha: "c", toSha: "b", kind: TERMINATES, style: magenta},
+				{fromPos: 0, toPos: 0, fromSha: "b", toSha: "d", kind: STARTS, style: green},
+				{fromPos: 0, toPos: 1, fromSha: "b", toSha: "e", kind: STARTS, style: green},
 			},
-			commit:      &models.Commit{Sha: "b"},
 			prevCommit:  &models.Commit{Sha: "a"},
-			expectedStr: "⎔─│",
+			expectedStr: "⏣─│",
 			expectedStyles: []style.TextStyle{
-				style.FgGreen, style.FgGreen, style.FgMagenta,
+				green, green, magenta,
+			},
+		},
+		{
+			name: "starting and terminating pipe sharing some space",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a1", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "a2", toSha: "a3", kind: STARTS, style: yellow},
+				{fromPos: 1, toPos: 1, fromSha: "b1", toSha: "b2", kind: CONTINUES, style: magenta},
+				{fromPos: 3, toPos: 0, fromSha: "e1", toSha: "a2", kind: TERMINATES, style: green},
+				{fromPos: 0, toPos: 2, fromSha: "a2", toSha: "c3", kind: STARTS, style: yellow},
+			},
+			prevCommit:  &models.Commit{Sha: "a1"},
+			expectedStr: "⏣─│─┬─┘",
+			expectedStyles: []style.TextStyle{
+				yellow, yellow, magenta, yellow, yellow, green, green,
+			},
+		},
+		{
+			name: "starting and terminating pipe sharing some space, with selection",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a1", toSha: "selected", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "selected", toSha: "a3", kind: STARTS, style: yellow},
+				{fromPos: 1, toPos: 1, fromSha: "b1", toSha: "b2", kind: CONTINUES, style: magenta},
+				{fromPos: 3, toPos: 0, fromSha: "e1", toSha: "selected", kind: TERMINATES, style: green},
+				{fromPos: 0, toPos: 2, fromSha: "selected", toSha: "c3", kind: STARTS, style: yellow},
+			},
+			prevCommit:  &models.Commit{Sha: "a1"},
+			expectedStr: "⏣───┐ ┘",
+			expectedStyles: []style.TextStyle{
+				highlightStyle, highlightStyle, highlightStyle, highlightStyle, highlightStyle, style.Nothing, green,
+			},
+		},
+		{
+			name: "many terminating pipes",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a1", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "a2", toSha: "a3", kind: STARTS, style: yellow},
+				{fromPos: 1, toPos: 0, fromSha: "b1", toSha: "a2", kind: TERMINATES, style: magenta},
+				{fromPos: 2, toPos: 0, fromSha: "c1", toSha: "a2", kind: TERMINATES, style: green},
+			},
+			prevCommit:  &models.Commit{Sha: "a1"},
+			expectedStr: "⎔─┴─┘",
+			expectedStyles: []style.TextStyle{
+				yellow, magenta, magenta, green, green,
+			},
+		},
+		{
+			name: "starting pipe passing through",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a1", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "a2", toSha: "a3", kind: STARTS, style: yellow},
+				{fromPos: 0, toPos: 3, fromSha: "a2", toSha: "d3", kind: STARTS, style: yellow},
+				{fromPos: 1, toPos: 1, fromSha: "b1", toSha: "b3", kind: CONTINUES, style: magenta},
+				{fromPos: 2, toPos: 2, fromSha: "c1", toSha: "c3", kind: CONTINUES, style: green},
+			},
+			prevCommit:  &models.Commit{Sha: "a1"},
+			expectedStr: "⏣─│─│─┐",
+			expectedStyles: []style.TextStyle{
+				yellow, yellow, magenta, yellow, green, yellow, yellow,
+			},
+		},
+		{
+			name: "starting and terminating path crossing continuing path",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a1", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "a2", toSha: "a3", kind: STARTS, style: yellow},
+				{fromPos: 0, toPos: 1, fromSha: "a2", toSha: "b3", kind: STARTS, style: yellow},
+				{fromPos: 1, toPos: 1, fromSha: "b1", toSha: "a2", kind: CONTINUES, style: green},
+				{fromPos: 2, toPos: 0, fromSha: "c1", toSha: "a2", kind: TERMINATES, style: magenta},
+			},
+			prevCommit:  &models.Commit{Sha: "a1"},
+			expectedStr: "⏣─│─┘",
+			expectedStyles: []style.TextStyle{
+				yellow, yellow, green, magenta, magenta,
+			},
+		},
+		{
+			name: "another clash of starting and terminating paths",
+			pipes: []Pipe{
+				{fromPos: 0, toPos: 0, fromSha: "a1", toSha: "a2", kind: TERMINATES, style: red},
+				{fromPos: 0, toPos: 0, fromSha: "a2", toSha: "a3", kind: STARTS, style: yellow},
+				{fromPos: 0, toPos: 1, fromSha: "a2", toSha: "b3", kind: STARTS, style: yellow},
+				{fromPos: 2, toPos: 2, fromSha: "c1", toSha: "c3", kind: CONTINUES, style: green},
+				{fromPos: 3, toPos: 0, fromSha: "d1", toSha: "a2", kind: TERMINATES, style: magenta},
+			},
+			prevCommit:  &models.Commit{Sha: "a1"},
+			expectedStr: "⏣─┬─│─┘",
+			expectedStyles: []style.TextStyle{
+				yellow, yellow, yellow, magenta, green, magenta, magenta,
 			},
 		},
 	}
@@ -281,16 +373,20 @@ func TestRenderPipeSet(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			actualStr := renderPipeSet(test.pipes, test.commit, "selected", test.prevCommit)
-			t.Log("expected cells:")
+			actualStr := renderPipeSet(test.pipes, "selected", test.prevCommit)
+			t.Log("actual cells:")
+			t.Log(actualStr)
 			expectedStr := ""
+			if len([]rune(test.expectedStr)) != len(test.expectedStyles) {
+				t.Fatalf("Error in test setup: you have %d characters in the expected output (%s) but have specified %d styles", len([]rune(test.expectedStr)), test.expectedStr, len(test.expectedStyles))
+			}
 			for i, char := range []rune(test.expectedStr) {
 				expectedStr += test.expectedStyles[i].Sprint(string(char))
 			}
 			expectedStr += " "
+			t.Log("expected cells:")
 			t.Log(expectedStr)
-			t.Log("actual cells:")
-			t.Log(actualStr)
+
 			assert.Equal(t, expectedStr, actualStr)
 		})
 	}
@@ -367,8 +463,8 @@ func TestGetNextPipes(t *testing.T) {
 		getStyle := func(c *models.Commit) style.TextStyle { return style.FgDefault }
 		pipes := getNextPipes(test.prevPipes, test.commit, getStyle)
 		// rendering cells so that it's easier to see what went wrong
-		actualStr := renderPipeSet(pipes, test.commit, "selected", nil)
-		expectedStr := renderPipeSet(test.expected, test.commit, "selected", nil)
+		actualStr := renderPipeSet(pipes, "selected", nil)
+		expectedStr := renderPipeSet(test.expected, "selected", nil)
 		t.Log("expected cells:")
 		t.Log(expectedStr)
 		t.Log("actual cells:")
