@@ -166,14 +166,14 @@ type Gui struct {
 }
 
 // NewGui returns a new Gui object with a given output mode.
-func NewGui(mode OutputMode, supportOverlaps bool, playMode PlayMode, headless bool) (*Gui, error) {
+func NewGui(mode OutputMode, supportOverlaps bool, playMode PlayMode, headless bool, runeReplacements map[rune]string) (*Gui, error) {
 	g := &Gui{}
 
 	var err error
 	if headless {
 		err = g.tcellInitSimulation()
 	} else {
-		err = g.tcellInit()
+		err = g.tcellInit(runeReplacements)
 	}
 	if err != nil {
 		return nil, err
