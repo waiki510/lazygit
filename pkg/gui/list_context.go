@@ -2,8 +2,6 @@ package gui
 
 import (
 	"fmt"
-
-	"github.com/jesseduffield/gocui"
 )
 
 type ListContext struct {
@@ -97,7 +95,7 @@ func (self *ListContext) OnRender() error {
 	if self.GetDisplayStrings != nil {
 		self.Gui.refreshSelectedLine(self.GetPanelState(), self.GetItemsLength())
 		self.Gui.renderDisplayStrings(view, self.GetDisplayStrings(0, self.GetItemsLength()))
-		self.Gui.g.Update(func(g *gocui.Gui) error { return nil })
+		self.Gui.render()
 	}
 
 	return nil

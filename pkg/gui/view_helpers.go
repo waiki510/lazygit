@@ -400,3 +400,7 @@ func getTabbedView(gui *Gui) *gocui.View {
 	view, _ := gui.g.View(context.GetViewName())
 	return view
 }
+
+func (gui *Gui) render() {
+	gui.g.Update(func(g *gocui.Gui) error { return nil })
+}

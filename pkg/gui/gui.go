@@ -720,9 +720,7 @@ func (gui *Gui) startBackgroundFetch() {
 	} else {
 		gui.goEvery(time.Second*time.Duration(userConfig.Refresher.FetchInterval), gui.stopChan, func() error {
 			err := gui.fetch(false, "")
-			gui.g.Update(func(*gocui.Gui) error {
-				return nil
-			})
+			gui.render()
 			return err
 		})
 	}
