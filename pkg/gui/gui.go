@@ -397,7 +397,7 @@ func (gui *Gui) resetState(filterPath string, reuseState bool) {
 			Remotes:        &remotePanelState{listPanelState{SelectedLineIdx: 0}},
 			RemoteBranches: &remoteBranchesState{listPanelState{SelectedLineIdx: -1}},
 			Tags:           &tagsPanelState{listPanelState{SelectedLineIdx: -1}},
-			Commits:        &commitPanelState{listPanelState: listPanelState{SelectedLineIdx: -1}, LimitCommits: true},
+			Commits:        &commitPanelState{listPanelState: listPanelState{SelectedLineIdx: 0}, LimitCommits: true},
 			ReflogCommits:  &reflogCommitPanelState{listPanelState{SelectedLineIdx: 0}},
 			SubCommits:     &subCommitPanelState{listPanelState: listPanelState{SelectedLineIdx: 0}, refName: ""},
 			CommitFiles:    &commitFilesPanelState{listPanelState: listPanelState{SelectedLineIdx: -1}, refName: ""},
@@ -720,6 +720,9 @@ func (gui *Gui) startBackgroundFetch() {
 	} else {
 		gui.goEvery(time.Second*time.Duration(userConfig.Refresher.FetchInterval), gui.stopChan, func() error {
 			err := gui.fetch(false, "")
+			gui.g.Update(func(*gocui.Gui) error {
+				return nil
+			})
 			return err
 		})
 	}

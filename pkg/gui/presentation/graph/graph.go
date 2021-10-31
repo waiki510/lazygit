@@ -50,35 +50,31 @@ func (self Pipe) forSha(sha string) bool {
 	return equalHashes(self.fromSha, sha) || equalHashes(self.toSha, sha)
 }
 
-func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) ([][]Pipe, []string, int, int) {
+func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) []string {
+	pipeSets := GetPipeSets(commits, selectedCommit, getStyle)
+	if len(pipeSets) == 0 {
+		return nil
+	}
+
+	lines := RenderAux(pipeSets, commits, selectedCommit.Sha)
+
+	return lines
+}
+
+func GetPipeSets(commits []*models.Commit, selectedCommit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) [][]Pipe {
 	if len(commits) == 0 {
-		return nil, nil, 0, 0
+		return nil
 	}
 
 	pipes := []Pipe{{fromPos: 0, toPos: 0, fromSha: "START", toSha: commits[0].Sha, kind: STARTS, style: style.FgDefault}}
 
 	pipeSets := [][]Pipe{}
-	startOfSelection := -1
-	endOfSelection := -1
 	for _, commit := range commits {
 		pipes = getNextPipes(pipes, commit, getStyle)
 		pipeSets = append(pipeSets, pipes)
 	}
 
-	for i, pipeSet := range pipeSets {
-		if ContainsCommitSha(pipeSet, selectedCommit.Sha) {
-			if startOfSelection == -1 {
-				startOfSelection = i
-			}
-			endOfSelection = i
-		} else if endOfSelection != -1 {
-			break
-		}
-	}
-
-	lines := RenderAux(pipeSets, commits, selectedCommit.Sha)
-
-	return pipeSets, lines, startOfSelection, endOfSelection
+	return pipeSets
 }
 
 func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha string) []string {

@@ -9,14 +9,13 @@ require (
 	github.com/cli/safeexec v1.0.0
 	github.com/cloudfoundry/jibber_jabber v0.0.0-20151120183258-bcc4c8345a21
 	github.com/creack/pty v1.1.11
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-errors/errors v1.4.1
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/golang/protobuf v1.3.2 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/gookit/color v1.4.2
 	github.com/imdario/mergo v0.3.11
 	github.com/integrii/flaggy v1.4.0
@@ -30,8 +29,8 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/kyokomi/emoji/v2 v2.2.8
 	github.com/lucasb-eyer/go-colorful v1.2.0
-	github.com/mattn/go-colorable v0.1.7 // indirect
-	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/maruel/panicparse/v2 v2.2.0 // indirect
+	github.com/mattn/go-runewidth v0.0.13
 	github.com/mgutz/str v1.2.0
 	github.com/onsi/ginkgo v1.10.3 // indirect
 	github.com/onsi/gomega v1.7.1 // indirect

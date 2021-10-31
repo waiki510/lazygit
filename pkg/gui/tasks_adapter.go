@@ -90,9 +90,7 @@ func (gui *Gui) getManager(view *gocui.View) *tasks.ViewBufferManager {
 				view.Reset()
 			},
 			func() {
-				gui.g.Update(func(*gocui.Gui) error {
-					return nil
-				})
+				gui.g.Draw(view)
 			},
 			func() {
 				// Need to check if the content of the view is well past the origin.

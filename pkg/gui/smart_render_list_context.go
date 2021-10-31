@@ -1,12 +1,16 @@
 package gui
 
 import (
-	"fmt"
+	"os"
+	"time"
 
 	"github.com/jesseduffield/gocui"
+	"github.com/sirupsen/logrus"
 )
 
-type ListContext struct {
+type SmartRenderListContext struct {
+	*BasicContext
+
 	GetItemsLength      func() int
 	GetDisplayStrings   func(startIdx int, length int) [][]string
 	OnFocus             func() error
@@ -19,65 +23,18 @@ type ListContext struct {
 
 	Gui *Gui
 
-	*BasicContext
+	origin int
 }
 
-type IListContext interface {
-	GetSelectedItem() (ListItem, bool)
-	GetSelectedItemId() string
-	OnRender() error
-	handlePrevLine() error
-	handleNextLine() error
-	handleLineChange(change int) error
-	handleNextPage() error
-	handleGotoTop() error
-	handleGotoBottom() error
-	handlePrevPage() error
-	handleClick() error
-	onSearchSelect(selectedLineIdx int) error
-	FocusLine()
-
-	GetPanelState() IListPanelState
-
-	Context
-}
-
-func (self *ListContext) GetPanelState() IListPanelState {
+func (self *SmartRenderListContext) GetPanelState() IListPanelState {
 	return self.OnGetPanelState()
 }
 
-type IListPanelState interface {
-	SetSelectedLineIdx(int)
-	GetSelectedLineIdx() int
-}
-
-type ListItem interface {
-	// ID is a SHA when the item is a commit, a filename when the item is a file, 'stash@{4}' when it's a stash entry, 'my_branch' when it's a branch
-	ID() string
-
-	// Description is something we would show in a message e.g. '123as14: push blah' for a commit
-	Description() string
-}
-
-func (self *ListContext) FocusLine() {
-	view, err := self.Gui.g.View(self.ViewName)
-	if err != nil {
-		return
-	}
-
-	view.FocusPoint(0, self.GetPanelState().GetSelectedLineIdx())
-	view.Footer = formatListFooter(self.GetPanelState().GetSelectedLineIdx(), self.GetItemsLength())
-}
-
-func formatListFooter(selectedLineIdx int, length int) string {
-	return fmt.Sprintf("%d of %d", selectedLineIdx+1, length)
-}
-
-func (self *ListContext) GetSelectedItem() (ListItem, bool) {
+func (self *SmartRenderListContext) GetSelectedItem() (ListItem, bool) {
 	return self.SelectedItem()
 }
 
-func (self *ListContext) GetSelectedItemId() string {
+func (self *SmartRenderListContext) GetSelectedItemId() string {
 	item, ok := self.GetSelectedItem()
 
 	if !ok {
@@ -88,7 +45,7 @@ func (self *ListContext) GetSelectedItemId() string {
 }
 
 // OnFocus assumes that the content of the context has already been rendered to the view. OnRender is the function which actually renders the content to the view
-func (self *ListContext) OnRender() error {
+func (self *SmartRenderListContext) OnRender() error {
 	view, err := self.Gui.g.View(self.ViewName)
 	if err != nil {
 		return nil
@@ -96,14 +53,13 @@ func (self *ListContext) OnRender() error {
 
 	if self.GetDisplayStrings != nil {
 		self.Gui.refreshSelectedLine(self.GetPanelState(), self.GetItemsLength())
-		self.Gui.renderDisplayStrings(view, self.GetDisplayStrings(0, self.GetItemsLength()))
-		self.Gui.g.Update(func(g *gocui.Gui) error { return nil })
+		self.reRenderItems(view)
 	}
 
 	return nil
 }
 
-func (self *ListContext) HandleFocusLost() error {
+func (self *SmartRenderListContext) HandleFocusLost() error {
 	if self.OnFocusLost != nil {
 		return self.OnFocusLost()
 	}
@@ -111,12 +67,21 @@ func (self *ListContext) HandleFocusLost() error {
 	return nil
 }
 
-func (self *ListContext) HandleFocus() error {
+func (self *SmartRenderListContext) FocusLine() {
+	view, err := self.Gui.g.View(self.ViewName)
+	if err != nil {
+		// ignoring error for now
+		return
+	}
+
+	self.adjustCursorAndOrigin(view, self.GetPanelState().GetSelectedLineIdx())
+	view.Footer = formatListFooter(self.GetPanelState().GetSelectedLineIdx(), self.GetItemsLength())
+}
+
+func (self *SmartRenderListContext) HandleFocus() error {
 	if self.Gui.popupPanelFocused() {
 		return nil
 	}
-
-	self.FocusLine()
 
 	if self.Gui.State.Modes.Diffing.Active() {
 		return self.Gui.renderDiff()
@@ -129,19 +94,19 @@ func (self *ListContext) HandleFocus() error {
 	return nil
 }
 
-func (self *ListContext) HandleRender() error {
+func (self *SmartRenderListContext) HandleRender() error {
 	return self.OnRender()
 }
 
-func (self *ListContext) handlePrevLine() error {
+func (self *SmartRenderListContext) handlePrevLine() error {
 	return self.handleLineChange(-1)
 }
 
-func (self *ListContext) handleNextLine() error {
+func (self *SmartRenderListContext) handleNextLine() error {
 	return self.handleLineChange(1)
 }
 
-func (self *ListContext) handleLineChange(change int) error {
+func (self *SmartRenderListContext) handleLineChange(change int) error {
 	if !self.Gui.isPopupPanel(self.ViewName) && self.Gui.popupPanelFocused() {
 		return nil
 	}
@@ -156,7 +121,30 @@ func (self *ListContext) handleLineChange(change int) error {
 	return self.HandleFocus()
 }
 
-func (self *ListContext) handleNextPage() error {
+func (self *SmartRenderListContext) adjustCursorAndOrigin(view *gocui.View, selectedLineIdx int) {
+	if selectedLineIdx-self.origin < 0 {
+		self.origin = selectedLineIdx
+		_ = view.SetCursor(0, 0)
+	} else if selectedLineIdx-self.origin > view.InnerHeight() {
+		self.origin = selectedLineIdx - view.InnerHeight()
+		_ = view.SetCursor(0, view.InnerHeight())
+	} else {
+		_ = view.SetCursor(0, selectedLineIdx-self.origin)
+	}
+
+	t := time.Now()
+	Log.Warn("about to rerender contents")
+	self.reRenderItems(view)
+	Log.Warn(time.Since(t))
+}
+
+func (self *SmartRenderListContext) reRenderItems(view *gocui.View) {
+	// need to get the displaystrings and render them to the view
+	displayStrings := self.GetDisplayStrings(self.origin, view.InnerHeight())
+	self.Gui.renderDisplayStrings(view, displayStrings)
+}
+
+func (self *SmartRenderListContext) handleNextPage() error {
 	view, err := self.Gui.g.View(self.ViewName)
 	if err != nil {
 		return nil
@@ -166,15 +154,15 @@ func (self *ListContext) handleNextPage() error {
 	return self.handleLineChange(delta)
 }
 
-func (self *ListContext) handleGotoTop() error {
+func (self *SmartRenderListContext) handleGotoTop() error {
 	return self.handleLineChange(-self.GetItemsLength())
 }
 
-func (self *ListContext) handleGotoBottom() error {
+func (self *SmartRenderListContext) handleGotoBottom() error {
 	return self.handleLineChange(self.GetItemsLength())
 }
 
-func (self *ListContext) handlePrevPage() error {
+func (self *SmartRenderListContext) handlePrevPage() error {
 	view, err := self.Gui.g.View(self.ViewName)
 	if err != nil {
 		return nil
@@ -185,7 +173,7 @@ func (self *ListContext) handlePrevPage() error {
 	return self.handleLineChange(-delta)
 }
 
-func (self *ListContext) handleClick() error {
+func (self *SmartRenderListContext) handleClick() error {
 	if !self.Gui.isPopupPanel(self.ViewName) && self.Gui.popupPanelFocused() {
 		return nil
 	}
@@ -216,7 +204,21 @@ func (self *ListContext) handleClick() error {
 	return self.HandleFocus()
 }
 
-func (self *ListContext) onSearchSelect(selectedLineIdx int) error {
+func (self *SmartRenderListContext) onSearchSelect(selectedLineIdx int) error {
 	self.GetPanelState().SetSelectedLineIdx(selectedLineIdx)
 	return self.HandleFocus()
 }
+
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()

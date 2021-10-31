@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"os"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/mattn/go-runewidth"
+	"github.com/sirupsen/logrus"
 )
 
 // WithPadding pads a string as much as you want
@@ -19,13 +21,13 @@ func WithPadding(str string, padding int) string {
 
 func RenderDisplayStrings(displayStringsArr [][]string) string {
 	padWidths := getPadWidths(displayStringsArr)
-	paddedDisplayStrings := getPaddedDisplayStrings(displayStringsArr, padWidths)
+	output := getPaddedDisplayStrings(displayStringsArr, padWidths)
 
-	return strings.Join(paddedDisplayStrings, "\n")
+	return output
 }
 
-func getPaddedDisplayStrings(stringArrays [][]string, padWidths []int) []string {
-	paddedDisplayStrings := make([]string, len(stringArrays))
+func getPaddedDisplayStrings(stringArrays [][]string, padWidths []int) string {
+	builder := strings.Builder{}
 	for i, stringArray := range stringArrays {
 		if len(stringArray) == 0 {
 			continue
@@ -34,14 +36,19 @@ func getPaddedDisplayStrings(stringArrays [][]string, padWidths []int) []string 
 			if len(stringArray)-1 < j {
 				continue
 			}
-			paddedDisplayStrings[i] += WithPadding(stringArray[j], padWidth) + " "
+			builder.WriteString(WithPadding(stringArray[j], padWidth))
+			builder.WriteString(" ")
 		}
 		if len(stringArray)-1 < len(padWidths) {
 			continue
 		}
-		paddedDisplayStrings[i] += stringArray[len(padWidths)]
+		builder.WriteString(stringArray[len(padWidths)])
+
+		if i < len(stringArrays)-1 {
+			builder.WriteString("\n")
+		}
 	}
-	return paddedDisplayStrings
+	return builder.String()
 }
 
 func getPadWidths(stringArrays [][]string) []int {
@@ -86,3 +93,17 @@ func SafeTruncate(str string, limit int) string {
 		return str
 	}
 }
+
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()

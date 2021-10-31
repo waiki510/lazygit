@@ -37,27 +37,6 @@ func TestWithPadding(t *testing.T) {
 	}
 }
 
-// TestGetPaddedDisplayStrings is a function.
-func TestGetPaddedDisplayStrings(t *testing.T) {
-	type scenario struct {
-		stringArrays [][]string
-		padWidths    []int
-		expected     []string
-	}
-
-	scenarios := []scenario{
-		{
-			[][]string{{"a", "b"}, {"c", "d"}},
-			[]int{1},
-			[]string{"a b", "c d"},
-		},
-	}
-
-	for _, s := range scenarios {
-		assert.EqualValues(t, s.expected, getPaddedDisplayStrings(s.stringArrays, s.padWidths))
-	}
-}
-
 func TestGetPadWidths(t *testing.T) {
 	type scenario struct {
 		input    [][]string

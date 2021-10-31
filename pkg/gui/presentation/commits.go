@@ -1,6 +1,7 @@
 package presentation
 
 import (
+	"os"
 	"strings"
 	"sync"
 
@@ -11,73 +12,16 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/theme"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/kyokomi/emoji/v2"
+	"github.com/sirupsen/logrus"
 )
 
-var lastPipeSets [][]graph.Pipe
-var OldStart int = -1
-var OldEnd int = -1
+type pipeSetCacheKey struct {
+	commitSha   string
+	commitCount int
+}
+
+var pipeSetCache map[pipeSetCacheKey][][]graph.Pipe
 var mutex sync.Mutex
-
-func ResetOldCommitLines(
-	commits []*models.Commit,
-	fullDescription bool,
-	cherryPickedCommitShaMap map[string]bool,
-	diffName string,
-	parseEmoji bool,
-	selectedCommit *models.Commit,
-) [][]string {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	if OldStart == -1 || OldEnd == -1 {
-		return [][]string{}
-	}
-
-	graphLines := graph.RenderAux(lastPipeSets[OldStart:OldEnd+1], commits[OldStart:OldEnd+1], selectedCommit.Sha)
-
-	return getCommitListDisplayStrings(
-		commits[OldStart:OldEnd+1],
-		graphLines,
-		fullDescription,
-		cherryPickedCommitShaMap,
-		diffName,
-		parseEmoji,
-	)
-}
-
-func SetNewSelection(
-	commits []*models.Commit,
-	fullDescription bool,
-	cherryPickedCommitShaMap map[string]bool,
-	diffName string,
-	parseEmoji bool,
-	selectedCommit *models.Commit,
-	index int,
-) [][]string {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	end := index
-	for i := index; i < len(commits); i++ {
-		if !graph.ContainsCommitSha(lastPipeSets[i], selectedCommit.Sha) {
-			end = i - 1
-			break
-		}
-	}
-
-	OldStart = index
-	OldEnd = end
-
-	graphLines := graph.RenderAux(lastPipeSets[index:end+1], commits[index:end+1], selectedCommit.Sha)
-	return getCommitListDisplayStrings(
-		commits[index:end+1],
-		graphLines,
-		fullDescription,
-		cherryPickedCommitShaMap,
-		diffName,
-		parseEmoji,
-	)
-}
 
 func getCommitListDisplayStrings(
 	commits []*models.Commit,
@@ -94,27 +38,59 @@ func getCommitListDisplayStrings(
 	return lines
 }
 
-func GetAllCommitListDisplayStrings(
+func GetCommitListDisplayStrings(
 	commits []*models.Commit,
 	fullDescription bool,
 	cherryPickedCommitShaMap map[string]bool,
 	diffName string,
 	parseEmoji bool,
 	selectedCommit *models.Commit,
+	startIdx int,
+	length int,
 ) [][]string {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	getStyle := func(commit *models.Commit) style.TextStyle {
-		return authors.AuthorStyle(commit.Author)
+	if len(commits) == 0 {
+		return nil
 	}
-	pipeSets, graphLines, start, end := graph.RenderCommitGraph(commits, selectedCommit, getStyle)
-	lastPipeSets = pipeSets
-	OldStart = start
-	OldEnd = end
 
+	// given that our cache key is a commit sha and a commit count, it's very important that we don't actually try to render pipes
+	// when dealing with things like filtered commits.
+	cacheKey := pipeSetCacheKey{
+		commitSha:   commits[0].Sha,
+		commitCount: len(commits),
+	}
+
+	if pipeSetCache == nil {
+		pipeSetCache = make(map[pipeSetCacheKey][][]graph.Pipe)
+	}
+
+	pipeSets, ok := pipeSetCache[cacheKey]
+	if !ok {
+		// pipe sets are unique to a commit head. and a commit count. Sometimes we haven't loaded everything for that.
+		// so let's just cache it based on that.
+		getStyle := func(commit *models.Commit) style.TextStyle {
+			return authors.AuthorStyle(commit.Author)
+		}
+		pipeSets = graph.GetPipeSets(commits, selectedCommit, getStyle)
+		pipeSetCache[cacheKey] = pipeSets
+	}
+
+	if len(commits) == 0 {
+		return [][]string{}
+	}
+
+	end := startIdx + length
+	if end > len(commits)-1 {
+		end = len(commits) - 1
+	}
+
+	filteredPipeSets := pipeSets[startIdx : end+1]
+	filteredCommits := commits[startIdx : end+1]
+	graphLines := graph.RenderAux(filteredPipeSets, filteredCommits, selectedCommit.Sha)
 	return getCommitListDisplayStrings(
-		commits,
+		commits[startIdx:end+1],
 		graphLines,
 		fullDescription,
 		cherryPickedCommitShaMap,
@@ -131,6 +107,7 @@ func displayCommit(
 	graphLine string,
 	fullDescription bool,
 ) []string {
+
 	shaColor := getShaColor(commit, diffName, cherryPickedCommitShaMap)
 
 	actionString := ""
@@ -194,9 +171,6 @@ func getShaColor(commit *models.Commit, diffName string, cherryPickedCommitShaMa
 	if diffed {
 		shaColor = theme.DiffTerminalColor
 	} else if cherryPickedCommitShaMap[commit.Sha] {
-		// for some reason, setting the background to blue pads out the other commits
-		// horizontally. For the sake of accessibility I'm considering this a feature,
-		// not a bug
 		shaColor = theme.CherryPickedCommitTextStyle
 	}
 
@@ -217,3 +191,17 @@ func actionColorMap(str string) style.TextStyle {
 		return style.FgYellow
 	}
 }
+
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()

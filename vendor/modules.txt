@@ -105,8 +105,6 @@ github.com/gobwas/glob/util/strings
 github.com/golang-collections/collections/stack
 # github.com/golang/protobuf v1.3.2
 ## explicit
-# github.com/google/go-cmp v0.3.1
-## explicit
 # github.com/gookit/color v1.4.2
 ## explicit
 github.com/gookit/color
@@ -191,10 +189,11 @@ github.com/kyokomi/emoji/v2
 # github.com/lucasb-eyer/go-colorful v1.2.0
 ## explicit
 github.com/lucasb-eyer/go-colorful
-# github.com/mattn/go-colorable v0.1.7
+# github.com/maruel/panicparse/v2 v2.2.0
 ## explicit
+# github.com/mattn/go-colorable v0.1.11
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.12
+# github.com/mattn/go-isatty v0.0.14
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.13
 ## explicit

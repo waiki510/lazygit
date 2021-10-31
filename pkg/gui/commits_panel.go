@@ -9,7 +9,6 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
-	"github.com/jesseduffield/lazygit/pkg/gui/presentation"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 )
 
@@ -50,12 +49,6 @@ func (gui *Gui) handleCommitSelect() error {
 
 	gui.Log.Warn(commit.Parents)
 
-	gui.clearOldCommitGraphSelection()
-	gui.setNewCommitGraphSelection(state.SelectedLineIdx, commit)
-	gui.g.Update(func(*gocui.Gui) error {
-		return nil
-	})
-
 	return gui.refreshMainViews(refreshMainOpts{
 		main: &viewUpdateOpts{
 			title: "Patch",
@@ -63,44 +56,6 @@ func (gui *Gui) handleCommitSelect() error {
 		},
 		secondary: gui.secondaryPatchPanelUpdateOpts(),
 	})
-}
-
-func (gui *Gui) clearOldCommitGraphSelection() {
-	displayStrings := presentation.ResetOldCommitLines(
-		gui.State.Commits,
-		gui.State.ScreenMode != SCREEN_NORMAL,
-		gui.cherryPickedCommitShaMap(),
-		gui.State.Modes.Diffing.Ref,
-		gui.Config.GetUserConfig().Git.ParseEmoji,
-		gui.getSelectedLocalCommit(),
-	)
-
-	if len(displayStrings) == 0 || len(displayStrings[0]) == 0 {
-		return
-	}
-
-	list := strings.Split(utils.RenderDisplayStrings(displayStrings), "\n")
-	gui.writeLinesToViewAtPos(gui.Views.Commits, presentation.OldStart, list)
-}
-
-func (gui *Gui) setNewCommitGraphSelection(index int, selectedCommit *models.Commit) {
-	fromIndex := gui.State.Panels.Commits.SelectedLineIdx
-	displayStrings := presentation.SetNewSelection(
-		gui.State.Commits,
-		gui.State.ScreenMode != SCREEN_NORMAL,
-		gui.cherryPickedCommitShaMap(),
-		gui.State.Modes.Diffing.Ref,
-		gui.Config.GetUserConfig().Git.ParseEmoji,
-		gui.getSelectedLocalCommit(),
-		gui.State.Panels.Commits.SelectedLineIdx,
-	)
-
-	if len(displayStrings) == 0 || len(displayStrings[0]) == 0 {
-		return
-	}
-
-	list := strings.Split(utils.RenderDisplayStrings(displayStrings), "\n")
-	gui.writeLinesToViewAtPos(gui.Views.Commits, fromIndex, list)
 }
 
 func (gui *Gui) writeLinesToViewAtPos(view *gocui.View, y int, lines []string) {
@@ -694,7 +649,7 @@ func (gui *Gui) handleGotoBottomForCommitsPanel() error {
 	}
 
 	for _, context := range gui.getListContexts() {
-		if context.ViewName == "commits" {
+		if context.GetViewName() == "commits" {
 			return context.handleGotoBottom()
 		}
 	}

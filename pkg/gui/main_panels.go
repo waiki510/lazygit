@@ -112,6 +112,7 @@ func (gui *Gui) runTaskForView(view *gocui.View, task updateTask) error {
 
 	case RUN_PTY:
 		specificTask := task.(*runPtyTask)
+
 		return gui.newPtyTask(view, specificTask.cmd, specificTask.prefix)
 	}
 

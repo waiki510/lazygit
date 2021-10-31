@@ -264,7 +264,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	}
 
 	for _, listContext := range gui.getListContexts() {
-		view, err := gui.g.View(listContext.ViewName)
+		view, err := gui.g.View(listContext.GetViewName())
 		if err != nil {
 			continue
 		}
@@ -274,8 +274,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 			continue
 		}
 
-		// check if the selected line is now out of view and if so refocus it
-		view.FocusPoint(0, listContext.GetPanelState().GetSelectedLineIdx())
+		listContext.FocusLine()
 
 		view.SelBgColor = theme.GocuiSelectedLineBgColor
 

@@ -161,6 +161,9 @@ type View struct {
 	KeybindOnEdit bool
 
 	TextArea *TextArea
+
+	// something like '1 of 20' for a list view
+	Footer string
 }
 
 // call this in the event of a view resize, or if you want to render new content
@@ -705,7 +708,7 @@ func (v *View) Clear() {
 	v.rewind()
 	v.lines = nil
 	v.clearViewLines()
-	v.clearRunes()
+	// v.clearRunes()
 }
 
 // Rewind sets read and write pos to (0, 0).

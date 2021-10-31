@@ -114,11 +114,14 @@ func (gui *Gui) refreshSidePanels(options refreshOptions) error {
 			wg.Add(1)
 			func() {
 				if options.mode == ASYNC {
-					go utils.Safe(func() { _ = gui.refreshCommits() })
+					go utils.Safe(func() {
+						_ = gui.refreshCommits()
+						wg.Done()
+					})
 				} else {
 					_ = gui.refreshCommits()
+					wg.Done()
 				}
-				wg.Done()
 			}()
 		}
 
@@ -126,11 +129,14 @@ func (gui *Gui) refreshSidePanels(options refreshOptions) error {
 			wg.Add(1)
 			func() {
 				if options.mode == ASYNC {
-					go utils.Safe(func() { _ = gui.refreshFilesAndSubmodules() })
+					go utils.Safe(func() {
+						_ = gui.refreshFilesAndSubmodules()
+						wg.Done()
+					})
 				} else {
 					_ = gui.refreshFilesAndSubmodules()
+					wg.Done()
 				}
-				wg.Done()
 			}()
 		}
 
@@ -138,11 +144,15 @@ func (gui *Gui) refreshSidePanels(options refreshOptions) error {
 			wg.Add(1)
 			func() {
 				if options.mode == ASYNC {
-					go utils.Safe(func() { _ = gui.refreshStashEntries() })
+					go utils.Safe(func() {
+						_ = gui.refreshStashEntries()
+						wg.Done()
+					})
 				} else {
 					_ = gui.refreshStashEntries()
+					wg.Done()
 				}
-				wg.Done()
+
 			}()
 		}
 
@@ -150,11 +160,14 @@ func (gui *Gui) refreshSidePanels(options refreshOptions) error {
 			wg.Add(1)
 			func() {
 				if options.mode == ASYNC {
-					go utils.Safe(func() { _ = gui.refreshTags() })
+					go utils.Safe(func() {
+						_ = gui.refreshTags()
+						wg.Done()
+					})
 				} else {
 					_ = gui.refreshTags()
+					wg.Done()
 				}
-				wg.Done()
 			}()
 		}
 
@@ -162,11 +175,14 @@ func (gui *Gui) refreshSidePanels(options refreshOptions) error {
 			wg.Add(1)
 			func() {
 				if options.mode == ASYNC {
-					go utils.Safe(func() { _ = gui.refreshRemotes() })
+					go utils.Safe(func() {
+						_ = gui.refreshRemotes()
+						wg.Done()
+					})
 				} else {
 					_ = gui.refreshRemotes()
+					wg.Done()
 				}
-				wg.Done()
 			}()
 		}
 
@@ -305,12 +321,9 @@ func (gui *Gui) refreshSelectedLine(panelState IListPanelState, total int) {
 }
 
 func (gui *Gui) renderDisplayStrings(v *gocui.View, displayStrings [][]string) {
-	gui.g.Update(func(g *gocui.Gui) error {
-		list := utils.RenderDisplayStrings(displayStrings)
-		v.Clear()
-		fmt.Fprint(v, list)
-		return nil
-	})
+	list := utils.RenderDisplayStrings(displayStrings)
+	v.Clear()
+	fmt.Fprint(v, list)
 }
 
 func (gui *Gui) globalOptionsMap() map[string]string {
