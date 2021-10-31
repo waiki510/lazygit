@@ -1,6 +1,8 @@
 package graph
 
-import "github.com/jesseduffield/lazygit/pkg/gui/style"
+import (
+	"github.com/jesseduffield/lazygit/pkg/gui/style"
+)
 
 const mergeSymbol = '⏣'
 const commitSymbol = '⎔'

@@ -4,11 +4,6 @@ import (
 	"strings"
 	"sync"
 
-	"crypto/md5"
-	"os"
-	"strings"
-	"sync"
-
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/authors"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/graph"
@@ -16,7 +11,6 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/theme"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/kyokomi/emoji/v2"
-	"github.com/sirupsen/logrus"
 )
 
 var lastPipeSets [][]graph.Pipe
@@ -223,17 +217,3 @@ func actionColorMap(str string) style.TextStyle {
 		return style.FgYellow
 	}
 }
-
-func newLogger() *logrus.Entry {
-	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
-	}
-	logger := logrus.New()
-	logger.SetLevel(logrus.WarnLevel)
-	logger.SetOutput(file)
-	return logger.WithFields(logrus.Fields{})
-}
-
-var Log = newLogger()

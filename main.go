@@ -25,6 +25,7 @@ var (
 )
 
 func main() {
+	// time.Sleep(10 * time.Second)
 	flaggy.DefaultParser.ShowVersionWithVersionFlag = false
 
 	repoPath := ""

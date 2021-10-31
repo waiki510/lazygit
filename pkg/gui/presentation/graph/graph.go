@@ -1,14 +1,13 @@
 package graph
 
 import (
-	"os"
 	"sort"
-	"time"
+	"strings"
+	"sync"
 
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/utils"
-	"github.com/sirupsen/logrus"
 )
 
 type PipeKind uint8
@@ -55,7 +54,6 @@ func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, 
 	if len(commits) == 0 {
 		return nil, nil, 0, 0
 	}
-	t := time.Now()
 
 	pipes := []Pipe{{fromPos: 0, toPos: 0, fromSha: "START", toSha: commits[0].Sha, kind: STARTS, style: style.FgDefault}}
 
@@ -79,55 +77,59 @@ func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, 
 	}
 
 	lines := RenderAux(pipeSets, commits, selectedCommit.Sha)
-	Log.Warn(t, time.Since(t))
 
 	return pipeSets, lines, startOfSelection, endOfSelection
 }
 
 func RenderAux(pipeSets [][]Pipe, commits []*models.Commit, selectedCommitSha string) []string {
-	lines := make([]string, 0, len(pipeSets))
+	lines := make([]string, len(pipeSets))
+	wg := sync.WaitGroup{}
+	wg.Add(len(pipeSets))
 	for i, pipeSet := range pipeSets {
-		var prevCommit *models.Commit
-		if i > 0 {
-			prevCommit = commits[i-1]
-		}
-		line := renderPipeSet(pipeSet, selectedCommitSha, prevCommit)
-		lines = append(lines, line)
+		i := i
+		pipeSet := pipeSet
+		go func() {
+			defer wg.Done()
+			var prevCommit *models.Commit
+			if i > 0 {
+				prevCommit = commits[i-1]
+			}
+			line := renderPipeSet(pipeSet, selectedCommitSha, prevCommit)
+			lines[i] = line
+		}()
 	}
+	wg.Wait()
 	return lines
 }
 
 func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) []Pipe {
-	currentPipes := []Pipe{}
+	currentPipes := make([]Pipe, 0, len(prevPipes))
 	maxPos := 0
 	for _, pipe := range prevPipes {
+		// a pipe that terminated in the previous line has no bearing on the current line
+		// so we'll filter those out
 		if pipe.kind != TERMINATES {
 			currentPipes = append(currentPipes, pipe)
 		}
 		maxPos = utils.Max(maxPos, pipe.toPos)
 	}
 
-	newPipes := []Pipe{}
-	// TODO: need to decide on where to put the commit based on the leftmost pipe
-	// that goes to the commit
-	pos := -1
+	newPipes := make([]Pipe, 0, len(currentPipes)+len(commit.Parents))
+	// start by assuming that we've got a brand new commit not related to any preceding commit.
+	// (this only happens when we're doing `git log --all`). These will be tacked onto the far end.
+	pos := maxPos + 1
 	for _, pipe := range currentPipes {
 		if equalHashes(pipe.toSha, commit.Sha) {
-			if pos == -1 {
-				pos = pipe.toPos
-			} else {
-				pos = utils.Min(pipe.toPos, pos)
-			}
+			// turns out this commit does have a descendant so we'll place it right under the first instance
+			pos = pipe.toPos
+			break
 		}
 	}
 
+	// a taken spot is one where a current pipe is ending on
 	takenSpots := make(map[int]bool)
+	// a traversed spot is one where a current pipe is starting on, ending on, or passing through
 	traversedSpots := make(map[int]bool)
-	if pos == -1 {
-		pos = maxPos + 1
-		takenSpots[pos] = true
-		traversedSpots[pos] = true
-	}
 
 	if len(commit.Parents) > 0 {
 		newPipes = append(newPipes, Pipe{
@@ -140,27 +142,29 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 		})
 	}
 
-	otherMap := make(map[int]bool)
+	traversedSpotsForContinuingPipes := make(map[int]bool)
 	for _, pipe := range currentPipes {
 		if !equalHashes(pipe.toSha, commit.Sha) {
-			otherMap[pipe.toPos] = true
+			traversedSpotsForContinuingPipes[pipe.toPos] = true
 		}
 	}
 
-	getNextAvailablePosForNewPipe := func() int {
+	getNextAvailablePosForContinuingPipe := func() int {
 		i := 0
 		for {
-			if !takenSpots[i] && !otherMap[i] {
+			if !traversedSpots[i] {
 				return i
 			}
 			i++
 		}
 	}
 
-	getNextAvailablePos := func() int {
+	getNextAvailablePosForNewPipe := func() int {
 		i := 0
 		for {
-			if !traversedSpots[i] {
+			// a newly created pipe is not allowed to end on a spot that's already taken,
+			// nor on a spot that's been traversed by a continuing pipe.
+			if !takenSpots[i] && !traversedSpotsForContinuingPipes[i] {
 				return i
 			}
 			i++
@@ -192,7 +196,7 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 			traverse(pipe.toPos, pos)
 		} else if pipe.toPos < pos {
 			// continuing here
-			availablePos := getNextAvailablePos()
+			availablePos := getNextAvailablePosForContinuingPipe()
 			newPipes = append(newPipes, Pipe{
 				fromPos: pipe.toPos,
 				toPos:   availablePos,
@@ -225,7 +229,6 @@ func getNextPipes(prevPipes []Pipe, commit *models.Commit, getStyle func(c *mode
 	for _, pipe := range currentPipes {
 		if !equalHashes(pipe.toSha, commit.Sha) && pipe.toPos > pos {
 			// continuing on, potentially moving left to fill in a blank spot
-			// actually need to work backwards: can't just fill any gap: or can I?
 			last := pipe.toPos
 			for i := pipe.toPos; i > pos; i-- {
 				if takenSpots[i] || traversedSpots[i] {
@@ -262,24 +265,23 @@ func renderPipeSet(
 	selectedCommitSha string,
 	prevCommit *models.Commit,
 ) string {
-	pos := 0
+	maxPos := 0
+	commitPos := 0
 	startCount := 0
 	for _, pipe := range pipes {
 		if pipe.kind == STARTS {
 			startCount++
-			pos = pipe.fromPos
+			commitPos = pipe.fromPos
 		} else if pipe.kind == TERMINATES {
-			pos = pipe.toPos
+			commitPos = pipe.toPos
 		}
-	}
-	isMerge := startCount > 1
 
-	maxPos := 0
-	for _, pipe := range pipes {
 		if pipe.right() > maxPos {
 			maxPos = pipe.right()
 		}
 	}
+	isMerge := startCount > 1
+
 	cells := make([]*Cell, maxPos+1)
 	for i := range cells {
 		cells[i] = &Cell{cellType: CONNECTION, style: style.FgDefault}
@@ -317,10 +319,11 @@ func renderPipeSet(
 		}
 	}
 
-	// so we have our pos again, now it's time to build the cells.
+	// so we have our commit pos again, now it's time to build the cells.
 	// we'll handle the one that's sourced from our selected commit last so that it can override the other cells.
 	selectedPipes := []Pipe{}
-	nonSelectedPipes := []Pipe{}
+	// pre-allocating this one because most of the time we'll only have non-selected pipes
+	nonSelectedPipes := make([]Pipe, 0, len(pipes))
 
 	for _, pipe := range pipes {
 		if highlight && equalHashes(pipe.fromSha, selectedCommitSha) {
@@ -337,22 +340,20 @@ func renderPipeSet(
 	}
 
 	for _, pipe := range nonSelectedPipes {
-		if pipe.kind != STARTS && !(pipe.kind == TERMINATES && pipe.fromPos == pos && pipe.toPos == pos) {
+		if pipe.kind != STARTS && !(pipe.kind == TERMINATES && pipe.fromPos == commitPos && pipe.toPos == commitPos) {
 			renderPipe(pipe, pipe.style, false)
 		}
 	}
 
-	if len(selectedPipes) > 0 {
-		for _, pipe := range selectedPipes {
-			for i := pipe.left(); i <= pipe.right(); i++ {
-				cells[i].reset()
-			}
+	for _, pipe := range selectedPipes {
+		for i := pipe.left(); i <= pipe.right(); i++ {
+			cells[i].reset()
 		}
-		for _, pipe := range selectedPipes {
-			renderPipe(pipe, highlightStyle, true)
-			if pipe.toPos == pos {
-				cells[pipe.toPos].setStyle(highlightStyle)
-			}
+	}
+	for _, pipe := range selectedPipes {
+		renderPipe(pipe, highlightStyle, true)
+		if pipe.toPos == commitPos {
+			cells[pipe.toPos].setStyle(highlightStyle)
 		}
 	}
 
@@ -361,13 +362,13 @@ func renderPipeSet(
 		cType = MERGE
 	}
 
-	cells[pos].setType(cType)
+	cells[commitPos].setType(cType)
 
-	var result string
-	for _, cell := range cells {
-		result += cell.render()
+	renderedCells := make([]string, len(cells))
+	for i, cell := range cells {
+		renderedCells[i] = cell.render()
 	}
-	return result
+	return strings.Join(renderedCells, "")
 }
 
 func equalHashes(a, b string) bool {
@@ -375,19 +376,3 @@ func equalHashes(a, b string) bool {
 	// parent hashes are only stored up to 20 characters for some reason so we'll truncate to that for comparison
 	return a[:length] == b[:length]
 }
-
-// instead of taking the previous path array and rendering the current line, we take the previous and next path arrays and render the current line.
-
-func newLogger() *logrus.Entry {
-	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
-	}
-	logger := logrus.New()
-	logger.SetLevel(logrus.WarnLevel)
-	logger.SetOutput(file)
-	return logger.WithFields(logrus.Fields{})
-}
-
-var Log = newLogger()
