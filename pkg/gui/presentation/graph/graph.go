@@ -50,18 +50,18 @@ func (self Pipe) forSha(sha string) bool {
 	return equalHashes(self.fromSha, sha) || equalHashes(self.toSha, sha)
 }
 
-func RenderCommitGraph(commits []*models.Commit, selectedCommit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) []string {
-	pipeSets := GetPipeSets(commits, selectedCommit, getStyle)
+func RenderCommitGraph(commits []*models.Commit, selectedCommitSha string, getStyle func(c *models.Commit) style.TextStyle) []string {
+	pipeSets := GetPipeSets(commits, getStyle)
 	if len(pipeSets) == 0 {
 		return nil
 	}
 
-	lines := RenderAux(pipeSets, commits, selectedCommit.Sha)
+	lines := RenderAux(pipeSets, commits, selectedCommitSha)
 
 	return lines
 }
 
-func GetPipeSets(commits []*models.Commit, selectedCommit *models.Commit, getStyle func(c *models.Commit) style.TextStyle) [][]Pipe {
+func GetPipeSets(commits []*models.Commit, getStyle func(c *models.Commit) style.TextStyle) [][]Pipe {
 	if len(commits) == 0 {
 		return nil
 	}
@@ -368,6 +368,11 @@ func renderPipeSet(
 }
 
 func equalHashes(a, b string) bool {
+	// if our selectedCommitSha is an empty string we treat that as meaning there is no selected commit sha
+	if a == "" || b == "" {
+		return false
+	}
+
 	length := utils.Min(len(a), len(b))
 	// parent hashes are only stored up to 20 characters for some reason so we'll truncate to that for comparison
 	return a[:length] == b[:length]

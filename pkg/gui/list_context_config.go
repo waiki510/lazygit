@@ -157,14 +157,20 @@ func (gui *Gui) branchCommitsListContext() IListContext {
 		OnClickSelectedItem: gui.handleViewCommitFiles,
 		Gui:                 gui,
 		GetDisplayStrings: func(startIdx int, length int) [][]string {
-			selectedCommit := gui.getSelectedLocalCommit()
+			selectedCommitSha := ""
+			if gui.currentContext().GetKey() == BRANCH_COMMITS_CONTEXT_KEY {
+				selectedCommit := gui.getSelectedLocalCommit()
+				if selectedCommit != nil {
+					selectedCommitSha = selectedCommit.Sha
+				}
+			}
 			return presentation.GetCommitListDisplayStrings(
 				gui.State.Commits,
 				gui.State.ScreenMode != SCREEN_NORMAL,
 				gui.cherryPickedCommitShaMap(),
 				gui.State.Modes.Diffing.Ref,
 				parseEmoji,
-				selectedCommit,
+				selectedCommitSha,
 				startIdx,
 				length,
 			)
@@ -219,14 +225,20 @@ func (gui *Gui) subCommitsListContext() IListContext {
 		OnFocus:         gui.handleSubCommitSelect,
 		Gui:             gui,
 		GetDisplayStrings: func(startIdx int, length int) [][]string {
-			selectedCommit := gui.getSelectedSubCommit()
+			selectedCommitSha := ""
+			if gui.currentContext().GetKey() == SUB_COMMITS_CONTEXT_KEY {
+				selectedCommit := gui.getSelectedSubCommit()
+				if selectedCommit != nil {
+					selectedCommitSha = selectedCommit.Sha
+				}
+			}
 			return presentation.GetCommitListDisplayStrings(
 				gui.State.SubCommits,
 				gui.State.ScreenMode != SCREEN_NORMAL,
 				gui.cherryPickedCommitShaMap(),
 				gui.State.Modes.Diffing.Ref,
 				parseEmoji,
-				selectedCommit,
+				selectedCommitSha,
 				0,
 				len(gui.State.SubCommits),
 			)

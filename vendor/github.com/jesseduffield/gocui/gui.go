@@ -7,6 +7,7 @@ package gocui
 import (
 	standardErrors "errors"
 	"log"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/go-errors/errors"
 	"github.com/mattn/go-runewidth"
+	"github.com/sirupsen/logrus"
 )
 
 // OutputMode represents an output mode, which determines how colors
@@ -231,7 +233,10 @@ func (g *Gui) Close() {
 	go func() {
 		g.stop <- struct{}{}
 	}()
+	Log.Warn("finishing")
+	g.screen.Fini()
 	Screen.Fini()
+	Log.Warn("finished")
 }
 
 // Size returns the terminal's size.
@@ -961,6 +966,7 @@ func (g *Gui) flush() error {
 			return err
 		}
 	}
+
 	Screen.Show()
 	return nil
 }
@@ -1349,3 +1355,17 @@ func (g *Gui) Resume() error {
 
 	return g.screen.Resume()
 }
+
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()

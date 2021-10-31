@@ -79,11 +79,10 @@ func (gui *Gui) createMenu(title string, items []*menuItem, createMenuOptions cr
 	menuView.Title = title
 	menuView.FgColor = theme.GocuiDefaultTextColor
 	menuView.ContainsList = true
-	menuView.Clear()
 	menuView.SetOnSelectItem(gui.onSelectItemWrapper(func(selectedLine int) error {
 		return nil
 	}))
-	fmt.Fprint(menuView, list)
+	menuView.SetContent(list)
 	gui.State.Panels.Menu.SelectedLineIdx = 0
 
 	gui.g.Update(func(g *gocui.Gui) error {

@@ -114,17 +114,18 @@ func getBoxDrawingChars(up, down, left, right bool) (rune, rune) {
 	} else if up && !down && left && right {
 		return '┴', '─'
 	} else if up && !down && left && !right {
-		return '┘', ' '
+		return '╯', ' '
 	} else if up && !down && !left && right {
+		// pretty sure this one's not possible
 		return '└', '─'
 	} else if up && !down && !left && !right {
 		return '╵', ' '
 	} else if !up && down && left && right {
 		return '┬', '─'
 	} else if !up && down && left && !right {
-		return '┐', ' '
+		return '╮', ' '
 	} else if !up && down && !left && right {
-		return '┌', '─'
+		return '╭', '─'
 	} else if !up && down && !left && !right {
 		return '╷', ' '
 	} else if !up && !down && left && right {

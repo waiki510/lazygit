@@ -44,7 +44,7 @@ func GetCommitListDisplayStrings(
 	cherryPickedCommitShaMap map[string]bool,
 	diffName string,
 	parseEmoji bool,
-	selectedCommit *models.Commit,
+	selectedCommitSha string,
 	startIdx int,
 	length int,
 ) [][]string {
@@ -73,8 +73,12 @@ func GetCommitListDisplayStrings(
 		getStyle := func(commit *models.Commit) style.TextStyle {
 			return authors.AuthorStyle(commit.Author)
 		}
-		pipeSets = graph.GetPipeSets(commits, selectedCommit, getStyle)
+		pipeSets = graph.GetPipeSets(commits, getStyle)
 		pipeSetCache[cacheKey] = pipeSets
+	}
+
+	if len(pipeSets) != len(commits) {
+		panic("WTF?")
 	}
 
 	if len(commits) == 0 {
@@ -88,7 +92,7 @@ func GetCommitListDisplayStrings(
 
 	filteredPipeSets := pipeSets[startIdx : end+1]
 	filteredCommits := commits[startIdx : end+1]
-	graphLines := graph.RenderAux(filteredPipeSets, filteredCommits, selectedCommit.Sha)
+	graphLines := graph.RenderAux(filteredPipeSets, filteredCommits, selectedCommitSha)
 	return getCommitListDisplayStrings(
 		commits[startIdx:end+1],
 		graphLines,

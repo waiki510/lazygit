@@ -218,8 +218,7 @@ func (gui *Gui) cleanString(s string) string {
 }
 
 func (gui *Gui) setViewContentSync(v *gocui.View, s string) {
-	v.Clear()
-	fmt.Fprint(v, gui.cleanString(s))
+	v.SetContent(gui.cleanString(s))
 }
 
 func (gui *Gui) setViewContent(v *gocui.View, s string) {
@@ -322,8 +321,8 @@ func (gui *Gui) refreshSelectedLine(panelState IListPanelState, total int) {
 
 func (gui *Gui) renderDisplayStrings(v *gocui.View, displayStrings [][]string) {
 	list := utils.RenderDisplayStrings(displayStrings)
-	v.Clear()
-	fmt.Fprint(v, list)
+	gui.Log.Warnf("setting content for view %s", v.Name())
+	v.SetContent(list)
 }
 
 func (gui *Gui) globalOptionsMap() map[string]string {

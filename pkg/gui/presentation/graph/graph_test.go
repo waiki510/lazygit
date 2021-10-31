@@ -212,7 +212,7 @@ func TestRenderCommitGraph(t *testing.T) {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			getStyle := func(c *models.Commit) style.TextStyle { return style.FgDefault }
-			lines := RenderCommitGraph(test.commits, &models.Commit{Sha: "blah"}, getStyle)
+			lines := RenderCommitGraph(test.commits, "blah", getStyle)
 
 			trimmedExpectedOutput := ""
 			for _, line := range strings.Split(strings.TrimPrefix(test.expectedOutput, "\n"), "\n") {

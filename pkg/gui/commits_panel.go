@@ -2,10 +2,8 @@ package gui
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
-	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazygit/pkg/commands"
 	"github.com/jesseduffield/lazygit/pkg/commands/models"
 	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
@@ -56,11 +54,6 @@ func (gui *Gui) handleCommitSelect() error {
 		},
 		secondary: gui.secondaryPatchPanelUpdateOpts(),
 	})
-}
-
-func (gui *Gui) writeLinesToViewAtPos(view *gocui.View, y int, lines []string) {
-	content := strings.Join(lines, "\x1b[K\n") + "\x1b[K"
-	view.WriteFrom(0, y, content)
 }
 
 // during startup, the bottleneck is fetching the reflog entries. We need these

@@ -29,6 +29,7 @@ import (
 	"golang.org/x/text/transform"
 
 	"github.com/gdamore/tcell/v2/terminfo"
+	"github.com/sirupsen/logrus"
 
 	// import the stock terminals
 	_ "github.com/gdamore/tcell/v2/terminfo/base"
@@ -478,6 +479,10 @@ func (t *tScreen) Fini() {
 }
 
 func (t *tScreen) finish() {
+	// TODO: see why this isn't already a thing.
+	t.Lock()
+	t.fini = true
+	t.Unlock()
 	close(t.quit)
 	t.finalize()
 }
@@ -770,11 +775,17 @@ func (t *tScreen) TPuts(s string) {
 }
 
 func (t *tScreen) Show() {
+	Log.Warn("in tcell obtaining lock")
 	t.Lock()
+	Log.Warn("in tcell obtained lock")
 	if !t.fini {
+		Log.Warn("screen has not finished. Resizing")
 		t.resize()
+		Log.Warn("screen has not finished. Drawing")
 		t.draw()
+		Log.Warn("finished drawing")
 	}
+	Log.Warn("in tcell releasing lock")
 	t.Unlock()
 }
 
@@ -1725,3 +1736,17 @@ func (t *tScreen) finalize() {
 	t.disengage()
 	_ = t.tty.Close()
 }
+
+func newLogger() *logrus.Entry {
+	logPath := "/Users/jesseduffieldduffield/Library/Application Support/jesseduffield/lazygit/development.log"
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic("unable to log to file") // TODO: don't panic (also, remove this call to the `panic` function)
+	}
+	logger := logrus.New()
+	logger.SetLevel(logrus.WarnLevel)
+	logger.SetOutput(file)
+	return logger.WithFields(logrus.Fields{})
+}
+
+var Log = newLogger()
