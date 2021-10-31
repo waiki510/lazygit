@@ -277,11 +277,21 @@ func (v *View) Height() int {
 
 // if a view has a frame, that leaves less space for its writeable area
 func (v *View) InnerWidth() int {
-	return v.Width() - v.frameOffset()
+	innerWidth := v.Width() - v.frameOffset()
+	if innerWidth < 0 {
+		return 0
+	}
+
+	return innerWidth
 }
 
 func (v *View) InnerHeight() int {
-	return v.Height() - v.frameOffset()
+	innerHeight := v.Height() - v.frameOffset()
+	if innerHeight < 0 {
+		return 0
+	}
+
+	return innerHeight
 }
 
 func (v *View) frameOffset() int {
