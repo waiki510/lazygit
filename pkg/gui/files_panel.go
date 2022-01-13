@@ -799,31 +799,20 @@ func (gui *Gui) pushFiles() error {
 
 	return nil
 
-	if currentBranch.IsTrackingRemote() {
+	// TODO: move this info into the branch model, obtain when loading branches
+	if upstreamInfo != nil || currentBranch.IsTrackingRemote() {
+		opts := pushOpts{
+			force:          false,
+			upstreamRemote: upstreamInfo.Remote,
+			upstreamBranch: upstreamInfo.BranchName,
+		}
 		if currentBranch.HasCommitsToPull() {
-			return gui.requestToForcePush(pushOpts{
-				force:          true,
-				upstreamRemote: upstreamInfo.Remote,
-				upstreamBranch: upstreamInfo.BranchName,
-			})
+			opts.force = true
+			return gui.requestToForcePush(opts)
 		} else {
-			return gui.push(pushOpts{
-				force:          false,
-				upstreamRemote: upstreamInfo.Remote,
-				upstreamBranch: upstreamInfo.BranchName,
-			})
+			return gui.push(opts)
 		}
 	} else {
-		if upstreamInfo != nil {
-			return gui.push(
-				pushOpts{
-					force:          false,
-					upstreamRemote: upstreamInfo.Remote,
-					upstreamBranch: upstreamInfo.BranchName,
-				},
-			)
-		}
-
 		suggestedRemote := getSuggestedRemote(gui.State.Remotes)
 
 		if gui.Git.Config.GetPushToCurrent() {

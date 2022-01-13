@@ -60,7 +60,12 @@ func (gui *Gui) refreshBranches() {
 		}
 	}
 
-	gui.State.Branches = gui.Git.Loaders.Branches.Load(reflogCommits)
+	branches, err := gui.Git.Loaders.Branches.Load(reflogCommits)
+	if err != nil {
+		_ = gui.surfaceError(err)
+	}
+
+	gui.State.Branches = branches
 
 	if err := gui.postRefreshUpdate(gui.State.Contexts.Branches); err != nil {
 		gui.Log.Error(err)
