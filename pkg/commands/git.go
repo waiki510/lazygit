@@ -97,7 +97,7 @@ func NewGitCommandAux(
 	fileLoader := loaders.NewFileLoader(cmn, cmd, configCommands)
 	flowCommands := git_commands.NewFlowCommands(cmn, cmd, configCommands)
 	remoteCommands := git_commands.NewRemoteCommands(cmn, cmd)
-	branchCommands := git_commands.NewBranchCommands(cmn, cmd)
+	branchCommands := git_commands.NewBranchCommands(cmn, cmd, configCommands)
 	syncCommands := git_commands.NewSyncCommands(cmn, cmd)
 	tagCommands := git_commands.NewTagCommands(cmn, cmd)
 	commitCommands := git_commands.NewCommitCommands(cmn, cmd)

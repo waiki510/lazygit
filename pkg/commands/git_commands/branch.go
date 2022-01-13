@@ -19,16 +19,19 @@ const CurrentBranchNameRegex = `(?m)^\*.*?([^ ]*?)\)?$`
 type BranchCommands struct {
 	*common.Common
 
-	cmd oscommands.ICmdObjBuilder
+	cmd    oscommands.ICmdObjBuilder
+	config *ConfigCommands
 }
 
 func NewBranchCommands(
 	common *common.Common,
 	cmd oscommands.ICmdObjBuilder,
+	config *ConfigCommands,
 ) *BranchCommands {
 	return &BranchCommands{
 		Common: common,
 		cmd:    cmd,
+		config: config,
 	}
 }
 
@@ -112,9 +115,27 @@ func (self *BranchCommands) SetCurrentBranchUpstream(upstream string) error {
 	return self.cmd.New("git branch --set-upstream-to=" + self.cmd.Quote(upstream)).Run()
 }
 
-func (self *BranchCommands) GetUpstream(branchName string) (string, error) {
-	output, err := self.cmd.New(fmt.Sprintf("git rev-parse --abbrev-ref --symbolic-full-name %s@{u}", self.cmd.Quote(branchName))).DontLog().RunWithOutput()
-	return strings.TrimSpace(output), err
+type UpstreamInfo struct {
+	Remote     string
+	BranchName string
+}
+
+func (self *BranchCommands) GetUpstream(branchName string) (*UpstreamInfo, error) {
+	branches, err := self.config.Branches()
+	if err != nil {
+		return nil, err
+	}
+
+	for configBranchName, configBranch := range branches {
+		if configBranchName == branchName {
+			return &UpstreamInfo{
+				Remote:     configBranch.Remote,
+				BranchName: configBranch.Merge.Short(), // TODO: test
+			}, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (self *BranchCommands) SetUpstream(remoteName string, remoteBranchName string, branchName string) error {

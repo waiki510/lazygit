@@ -785,25 +785,39 @@ func (gui *Gui) pushFiles() error {
 		return nil
 	}
 
+	upstreamInfo, err := gui.Git.Branch.GetUpstream(currentBranch.Name)
+	if err != nil {
+		return gui.surfaceError(err)
+	}
+
+	gui.Log.Warn("is tracking remote:")
+	gui.Log.Warn(currentBranch.IsTrackingRemote())
+	gui.Log.Warn("has commits to pull:")
+	gui.Log.Warn(currentBranch.HasCommitsToPull())
+
+	return nil
+
 	if currentBranch.IsTrackingRemote() {
 		if currentBranch.HasCommitsToPull() {
-			return gui.requestToForcePush()
+			return gui.requestToForcePush(pushOpts{
+				force:          true,
+				upstreamRemote: upstreamInfo.Remote,
+				upstreamBranch: upstreamInfo.BranchName,
+			})
 		} else {
-			return gui.push(pushOpts{})
+			return gui.push(pushOpts{
+				force:          false,
+				upstreamRemote: upstreamInfo.Remote,
+				upstreamBranch: upstreamInfo.BranchName,
+			})
 		}
 	} else {
-		// see if we have an upstream for this branch in our config
-		upstreamRemote, upstreamBranch, err := gui.upstreamForBranchInConfig(currentBranch.Name)
-		if err != nil {
-			return gui.surfaceError(err)
-		}
-
-		if upstreamBranch != "" {
+		if upstreamInfo != nil {
 			return gui.push(
 				pushOpts{
 					force:          false,
-					upstreamRemote: upstreamRemote,
-					upstreamBranch: upstreamBranch,
+					upstreamRemote: upstreamInfo.Remote,
+					upstreamBranch: upstreamInfo.BranchName,
 				},
 			)
 		}
@@ -854,7 +868,7 @@ func getSuggestedRemote(remotes []*models.Remote) string {
 	return remotes[0].Name
 }
 
-func (gui *Gui) requestToForcePush() error {
+func (gui *Gui) requestToForcePush(opts pushOpts) error {
 	forcePushDisabled := gui.UserConfig.Git.DisableForcePushing
 	if forcePushDisabled {
 		return gui.createErrorPanel(gui.Tr.ForcePushDisabled)
@@ -864,24 +878,9 @@ func (gui *Gui) requestToForcePush() error {
 		title:  gui.Tr.ForcePush,
 		prompt: gui.Tr.ForcePushPrompt,
 		handleConfirm: func() error {
-			return gui.push(pushOpts{force: true})
+			return gui.push(opts)
 		},
 	})
-}
-
-func (gui *Gui) upstreamForBranchInConfig(branchName string) (string, string, error) {
-	branches, err := gui.Git.Config.Branches()
-	if err != nil {
-		return "", "", err
-	}
-
-	for configBranchName, configBranch := range branches {
-		if configBranchName == branchName {
-			return configBranch.Remote, configBranchName, nil
-		}
-	}
-
-	return "", "", nil
 }
 
 func (gui *Gui) handleSwitchToMerge() error {

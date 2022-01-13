@@ -396,21 +396,17 @@ func (gui *Gui) handleFastForward() error {
 		return gui.createErrorPanel(gui.Tr.FwdCommitsToPush)
 	}
 
-	upstream, err := gui.Git.Branch.GetUpstream(branch.Name)
+	upstreamInfo, err := gui.Git.Branch.GetUpstream(branch.Name)
 	if err != nil {
 		return gui.surfaceError(err)
 	}
 
 	action := gui.Tr.Actions.FastForwardBranch
 
-	split := strings.Split(upstream, "/")
-	remoteName := split[0]
-	remoteBranchName := strings.Join(split[1:], "/")
-
 	message := utils.ResolvePlaceholderString(
 		gui.Tr.Fetching,
 		map[string]string{
-			"from": fmt.Sprintf("%s/%s", remoteName, remoteBranchName),
+			"from": fmt.Sprintf("%s/%s", upstreamInfo.Remote, upstreamInfo.BranchName),
 			"to":   branch.Name,
 		},
 	)
@@ -421,7 +417,7 @@ func (gui *Gui) handleFastForward() error {
 			_ = gui.pullWithLock(PullFilesOptions{action: action, FastForwardOnly: true})
 		} else {
 			gui.logAction(action)
-			err := gui.Git.Sync.FastForward(branch.Name, remoteName, remoteBranchName)
+			err := gui.Git.Sync.FastForward(branch.Name, upstreamInfo.Remote, upstreamInfo.BranchName)
 			gui.handleCredentialsPopup(err)
 			_ = gui.refreshSidePanels(refreshOptions{mode: ASYNC, scope: []RefreshableView{BRANCHES}})
 		}
