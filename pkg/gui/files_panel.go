@@ -794,6 +794,8 @@ func (gui *Gui) pushFiles() error {
 	gui.Log.Warn(currentBranch.IsTrackingRemote())
 	gui.Log.Warn("has commits to pull:")
 	gui.Log.Warn(currentBranch.HasCommitsToPull())
+	gui.Log.Warn(currentBranch.Pullables)
+	gui.Log.Warn(currentBranch.Pushables)
 
 	return nil
 
