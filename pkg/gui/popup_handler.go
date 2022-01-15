@@ -10,10 +10,12 @@ import (
 )
 
 type PopupHandler interface {
-	Error(message string) error
+	ErrorMsg(message string) error
+	Error(err error) error
 	Ask(opts askOpts) error
 	Prompt(opts promptOpts) error
-	WithLoaderPanel(message string, f func() error)
+	WithLoaderPanel(message string, f func() error) error
+	WithWaitingStatus(message string, f func() error) error
 	Menu(opts createMenuOptions) error
 }
 
@@ -21,10 +23,11 @@ type RealPopupHandler struct {
 	*common.Common
 	index int
 	sync.Mutex
-	createPopupPanelFn func(createPopupPanelOpts) error
-	onErrorFn          func() error
-	closePopupFn       func() error
-	createMenuFn       func(createMenuOptions) error
+	createPopupPanelFn  func(createPopupPanelOpts) error
+	onErrorFn           func() error
+	closePopupFn        func() error
+	createMenuFn        func(createMenuOptions) error
+	withWaitingStatusFn func(message string, f func() error) error
 }
 
 var _ PopupHandler = &RealPopupHandler{}
@@ -35,14 +38,16 @@ func NewPopupHandler(
 	onErrorFn func() error,
 	closePopupFn func() error,
 	createMenuFn func(createMenuOptions) error,
-) PopupHandler {
+	withWaitingStatusFn func(message string, f func() error) error,
+) *RealPopupHandler {
 	return &RealPopupHandler{
-		Common:             common,
-		index:              0,
-		createPopupPanelFn: createPopupPanelFn,
-		onErrorFn:          onErrorFn,
-		closePopupFn:       closePopupFn,
-		createMenuFn:       createMenuFn,
+		Common:              common,
+		index:               0,
+		createPopupPanelFn:  createPopupPanelFn,
+		onErrorFn:           onErrorFn,
+		closePopupFn:        closePopupFn,
+		createMenuFn:        createMenuFn,
+		withWaitingStatusFn: withWaitingStatusFn,
 	}
 }
 
@@ -50,7 +55,15 @@ func (self *RealPopupHandler) Menu(opts createMenuOptions) error {
 	return self.createMenuFn(opts)
 }
 
-func (self *RealPopupHandler) Error(message string) error {
+func (self *RealPopupHandler) WithWaitingStatus(message string, f func() error) error {
+	return self.withWaitingStatusFn(message, f)
+}
+
+func (self *RealPopupHandler) Error(err error) error {
+	return self.ErrorMsg(err.Error())
+}
+
+func (self *RealPopupHandler) ErrorMsg(message string) error {
 	self.Lock()
 	self.index++
 	self.Unlock()
@@ -94,7 +107,7 @@ func (self *RealPopupHandler) Prompt(opts promptOpts) error {
 	})
 }
 
-func (self *RealPopupHandler) WithLoaderPanel(message string, f func() error) {
+func (self *RealPopupHandler) WithLoaderPanel(message string, f func() error) error {
 	index := 0
 	self.Lock()
 	self.index++
@@ -107,7 +120,7 @@ func (self *RealPopupHandler) WithLoaderPanel(message string, f func() error) {
 	})
 	if err != nil {
 		self.Log.Error(err)
-		return
+		return nil
 	}
 
 	go utils.Safe(func() {
@@ -121,6 +134,8 @@ func (self *RealPopupHandler) WithLoaderPanel(message string, f func() error) {
 		}
 		self.Unlock()
 	})
+
+	return nil
 }
 
 type TestPopupHandler struct {
