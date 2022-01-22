@@ -16,7 +16,7 @@ require (
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
-	github.com/gookit/color v1.4.2
+	github.com/gookit/color v1.5.0
 	github.com/imdario/mergo v0.3.11
 	github.com/integrii/flaggy v1.4.0
 	github.com/jesseduffield/go-git/v5 v5.1.2-0.20201006095850-341962be15a4
@@ -41,7 +41,7 @@ require (
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
 	golang.org/x/net v0.0.0-20201002202402-0a1ea396d57c // indirect
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ozeidan/fuzzy-patricia.v3 v3.0.0

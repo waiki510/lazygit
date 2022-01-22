@@ -106,7 +106,7 @@ github.com/golang-collections/collections/stack
 ## explicit
 # github.com/google/go-cmp v0.5.6
 ## explicit
-# github.com/gookit/color v1.4.2
+# github.com/gookit/color v1.5.0
 ## explicit
 github.com/gookit/color
 # github.com/imdario/mergo v0.3.11
@@ -254,7 +254,7 @@ golang.org/x/crypto/ssh/knownhosts
 golang.org/x/net/context
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
+# golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
